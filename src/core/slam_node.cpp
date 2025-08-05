@@ -83,7 +83,6 @@ void SlamNode::ackermannCallback(const ackermann_msgs::msg::AckermannDriveStampe
 {
   double v = msg->drive.speed;             // 선속도
   double delta = msg->drive.steering_angle; // 조향각
-  double L = wheel_base_;                  // 휠베이스 (예: 0.3)
 
   rclcpp::Time current_time = msg->header.stamp;
   double dt = (current_time - last_cmd_time_).seconds();
