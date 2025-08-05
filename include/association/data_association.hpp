@@ -10,7 +10,7 @@ namespace ekf_slam {
 namespace laser {
 struct Observation;
 }  // namespace laser
-
+    
 class DataAssociation {
 public:
     DataAssociation(double mahalanobis_thresh);
