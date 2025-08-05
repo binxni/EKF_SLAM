@@ -32,13 +32,12 @@ def generate_launch_description():
         remappings=[
             ('scan', '/scan'),
             ('odom', '/odom'),
-            ('map', '/map'),
-            ('slam_pose', '/slam_pose')
+            ('map', '/ekf_slam/map'),
+            ('ackermann_cmd', '/ackermann_cmd')
         ]
     )
 
     return LaunchDescription([
         use_sim_time_arg,
         config_file_arg,
-        slam_node
     ])
