@@ -60,14 +60,14 @@ void SlamNode::initialize()
 
   // LaserScan 구독
   scan_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
-    "scan", 10, std::bind(&SlamNode::scanCallback, this, std::placeholders::_1));
+    "/scan", 10, std::bind(&SlamNode::scanCallback, this, std::placeholders::_1));
 
   // ackermann 구독 (EKF 예측 입력)
   ackermann_sub_ = this->create_subscription<ackermann_msgs::msg::AckermannDriveStamped>(
-    "ackermann_cmd", 10, std::bind(&SlamNode::ackermannCallback, this, std::placeholders::_1) );
+    "/ackermann_cmd", 10, std::bind(&SlamNode::ackermannCallback, this, std::placeholders::_1) );
 
   // 맵 퍼블리셔 초기화
-  map_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>("map", 10);
+  map_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>("/ekf_slam/map", 10);
 
   // 주기적으로 맵 publish (1초 간격)
   map_timer_ = this->create_wall_timer( std::chrono::seconds(1), std::bind(&SlamNode::publishMap, this));
