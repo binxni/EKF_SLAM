@@ -20,12 +20,6 @@ def generate_launch_description():
         description='Path to SLAM configuration file'
     )
 
-    rviz_config_arg = DeclareLaunchArgument(
-        'rviz_config',
-        default_value=PathJoinSubstitution([pkg_share, 'rviz', 'slam_visualization.rviz']),
-        description='Path to RViz configuration file'
-    )
-
     slam_node = Node(
         package='ekf_slam',
         executable='slam_node',
@@ -43,18 +37,8 @@ def generate_launch_description():
         ]
     )
 
-    rviz_node = Node(
-        package='rviz2',
-        executable='rviz2',
-        name='rviz2',
-        arguments=['-d', LaunchConfiguration('rviz_config')],
-        parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}]
-    )
-
     return LaunchDescription([
         use_sim_time_arg,
         config_file_arg,
-        rviz_config_arg,
-        slam_node,
-        rviz_node
+        slam_node
     ])
