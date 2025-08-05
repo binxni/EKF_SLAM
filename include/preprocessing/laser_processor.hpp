@@ -37,6 +37,7 @@ private:
 
   bool isInverted(const std::string & laser_frame, const rclcpp::Time & stamp);
   void invertScan(sensor_msgs::msg::LaserScan & scan);
+  double normalizeAngle(double angle);
 
 };
 
