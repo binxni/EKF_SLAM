@@ -1,5 +1,5 @@
 // src/occupancy_mapper.cpp
-#include "ekf_slam/occupancy_mapper.hpp"
+#include "mapping/occupancy_mapper.hpp"
 #include <cmath>
 #include <algorithm>
 
