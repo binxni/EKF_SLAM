@@ -26,6 +26,9 @@ public:
   SlamNode();
   ~SlamNode();
 
+  // Perform initialization that requires shared_from_this()
+  void initialize();
+
 private:
 
   double noise_x_, noise_y_, noise_theta_;
