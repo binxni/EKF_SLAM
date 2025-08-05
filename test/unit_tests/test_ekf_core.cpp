@@ -28,11 +28,11 @@ TEST(EkfSlamSystemTest, LandmarkUpdate)
   ekf_slam::EkfSlamSystem slam(0.5, 0.01, 0.01, 0.01, 0.5, 0.1, 2.0);
 
   // 관측된 landmark 하나 추가
-  laser::Observation obs;
+  ekf_slam::laser::Observation obs;
   obs.range = 1.0;
   obs.bearing = 0.0;
 
-  std::vector<laser::Observation> observations = { obs };
+  std::vector<ekf_slam::laser::Observation> observations = { obs };
 
   slam.update(observations);
 
