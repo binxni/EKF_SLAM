@@ -1,4 +1,4 @@
-#include "../../include/core/slam_node.hpp"
+#include "core/slam_node.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
 #include "nav_msgs/msg/odometry.hpp"

@@ -20,8 +20,7 @@ find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(eigen3_cmake_module REQUIRED)
 find_package(Eigen3 REQUIRED)
-find_package(pcl_ros REQUIRED)
-find_package(pcl_conversions REQUIRED)
+
 
 # Create library
 add_library(${PROJECT_NAME}_lib
@@ -43,9 +42,6 @@ ament_target_dependencies(${PROJECT_NAME}_lib
   tf2_ros
   tf2_geometry_msgs
   Eigen3
-  lidar_ekf_slam_interfaces
-  pcl_ros
-  pcl_conversions
 )
 
 # slam node Executables
@@ -61,7 +57,6 @@ ament_target_dependencies(slam_node
   tf2_ros
   tf2_geometry_msgs
   Eigen3
-  lidar_ekf_slam_interfaces
 )
 target_link_libraries(slam_node ${PROJECT_NAME}_lib)
 
@@ -127,7 +122,7 @@ ament_export_dependencies(
   tf2_ros
   tf2_geometry_msgs
   Eigen3
-  lidar_ekf_slam_interfaces
+
 )
 
 ament_package()

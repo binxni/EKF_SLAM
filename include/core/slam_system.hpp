@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "../preprocessing/laser_processor.hpp"
+#include "preprocessing/laser_processor.hpp"
 
 namespace ekf_slam {
 

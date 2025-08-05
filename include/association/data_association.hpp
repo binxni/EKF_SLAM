@@ -3,7 +3,6 @@
 
 #include <Eigen/Dense>
 #include <unordered_map>
-#include "ekf_slam/types/observation.hpp"
 
 namespace ekf_slam {
 
