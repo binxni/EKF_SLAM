@@ -39,6 +39,11 @@ SlamNode::SlamNode() : Node("ekf_slam_node")
     meas_range_noise_, meas_bearing_noise_, assoc_thresh_
   );
 
+  RCLCPP_INFO(this->get_logger(), "EKF SLAM Node Initialized.");
+}
+
+void SlamNode::initialize()
+{
   // LaserScan 전처리기 초기화
   laser_processor_ = std::make_shared<laser::LaserProcessor>(
     shared_from_this(), tf_buffer_.get(), "base_link");
@@ -53,7 +58,6 @@ SlamNode::SlamNode() : Node("ekf_slam_node")
 
   occupancy_mapper_->startMapping();
 
-
   // LaserScan 구독
   scan_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
     "/scan", 10, std::bind(&SlamNode::scanCallback, this, std::placeholders::_1));
@@ -67,9 +71,6 @@ SlamNode::SlamNode() : Node("ekf_slam_node")
 
   // 주기적으로 맵 publish (1초 간격)
   map_timer_ = this->create_wall_timer( std::chrono::seconds(1), std::bind(&SlamNode::publishMap, this));
-
-
-  RCLCPP_INFO(this->get_logger(), "EKF SLAM Node Initialized.");
 }
 
 SlamNode::~SlamNode()
@@ -82,7 +83,6 @@ void SlamNode::ackermannCallback(const ackermann_msgs::msg::AckermannDriveStampe
 {
   double v = msg->drive.speed;             // 선속도
   double delta = msg->drive.steering_angle; // 조향각
-  double L = wheel_base_;                  // 휠베이스 (예: 0.3)
 
   rclcpp::Time current_time = msg->header.stamp;
   double dt = (current_time - last_cmd_time_).seconds();
@@ -131,6 +131,7 @@ int main(int argc, char** argv)
 {
   rclcpp::init(argc, argv);
   auto node = std::make_shared<ekf_slam::SlamNode>();
+  node->initialize();
   rclcpp::spin(node);
   rclcpp::shutdown();
   return 0;
