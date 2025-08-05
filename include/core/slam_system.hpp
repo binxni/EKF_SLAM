@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "preprocessing/laser_processor.hpp"
+#include "association/data_association.hpp"
 
 namespace ekf_slam {
 
@@ -37,13 +38,15 @@ private:
   // 공분산 행렬
   Eigen::MatrixXd sigma_;
 
-  double noise_x_, noise_y_, noise_theta_, wheel_base_; // control noise
+  double wheel_base_;
+  double noise_x_, noise_y_, noise_theta_; // control noise
   double meas_range_noise_, meas_bearing_noise_;
 
   // 랜드마크 ID → mu_ 인덱스 매핑
   std::unordered_map<int, int> landmark_index_map_;
 
   ekf_slam::DataAssociation data_associator_;
+  int next_landmark_id_;
 
   // 상태 확장 함수
   void extendState(int landmark_id, const laser::Observation &obs);
@@ -52,6 +55,8 @@ private:
   void expandCovarianceWithLandmark(int old_size, double range, double bearing,
                                     double theta, double range_noise_var,
                                     double bearing_noise_var);
+
+  Eigen::Matrix2d getMeasurementNoiseMatrix() const;
 };
 
 } // namespace ekf_slam

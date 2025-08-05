@@ -6,6 +6,11 @@
 
 namespace ekf_slam {
 
+// Forward declaration for laser observation type
+namespace laser {
+struct Observation;
+}  // namespace laser
+
 class DataAssociation {
 public:
     DataAssociation(double mahalanobis_thresh);

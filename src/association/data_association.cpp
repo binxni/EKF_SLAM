@@ -1,4 +1,5 @@
 #include "association/data_association.hpp"
+#include "preprocessing/laser_processor.hpp"
 #include <cmath>
 #include <limits>
 
