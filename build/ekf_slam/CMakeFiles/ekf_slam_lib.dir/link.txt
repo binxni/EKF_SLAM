@@ -1,0 +1,2 @@
+/usr/bin/ar qc libekf_slam_lib.a CMakeFiles/ekf_slam_lib.dir/src/core/slam_system.cpp.o CMakeFiles/ekf_slam_lib.dir/src/preprocessing/laser_processor.cpp.o CMakeFiles/ekf_slam_lib.dir/src/association/data_association.cpp.o CMakeFiles/ekf_slam_lib.dir/src/mapping/occupancy_mapper.cpp.o
+/usr/bin/ranlib libekf_slam_lib.a

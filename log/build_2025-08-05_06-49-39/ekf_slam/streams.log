@@ -1,0 +1,120 @@
+[0.006s] Invoking command in '/home/subin/slam/EKF_SLAM/build/ekf_slam': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/subin/f1tenth_ws/install/f1tenth_gym_ros:/opt/ros/humble /usr/bin/cmake /home/subin/slam/EKF_SLAM -DAMENT_CMAKE_SYMLINK_INSTALL=1 -DCMAKE_INSTALL_PREFIX=/home/subin/slam/EKF_SLAM/install/ekf_slam
+[0.123s] -- The C compiler identification is GNU 11.4.0
+[0.171s] -- The CXX compiler identification is GNU 11.4.0
+[0.178s] -- Detecting C compiler ABI info
+[0.219s] -- Detecting C compiler ABI info - done
+[0.222s] -- Check for working C compiler: /usr/bin/cc - skipped
+[0.222s] -- Detecting C compile features
+[0.223s] -- Detecting C compile features - done
+[0.225s] -- Detecting CXX compiler ABI info
+[0.265s] -- Detecting CXX compiler ABI info - done
+[0.269s] -- Check for working CXX compiler: /usr/bin/c++ - skipped
+[0.269s] -- Detecting CXX compile features
+[0.269s] -- Detecting CXX compile features - done
+[0.276s] -- Found ament_cmake: 1.3.12 (/opt/ros/humble/share/ament_cmake/cmake)
+[0.352s] -- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter 
+[0.389s] -- Override CMake install command with custom implementation using symlinks instead of copying resources
+[0.413s] -- Found rclcpp: 16.0.14 (/opt/ros/humble/share/rclcpp/cmake)
+[0.448s] -- Found rosidl_generator_c: 3.1.7 (/opt/ros/humble/share/rosidl_generator_c/cmake)
+[0.452s] -- Found rosidl_adapter: 3.1.7 (/opt/ros/humble/share/rosidl_adapter/cmake)
+[0.458s] -- Found rosidl_generator_cpp: 3.1.7 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)
+[0.470s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[0.482s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[0.515s] -- Found rmw_implementation_cmake: 6.1.2 (/opt/ros/humble/share/rmw_implementation_cmake/cmake)
+[0.517s] -- Found rmw_fastrtps_cpp: 6.2.8 (/opt/ros/humble/share/rmw_fastrtps_cpp/cmake)
+[0.568s] -- Found OpenSSL: /usr/lib/aarch64-linux-gnu/libcrypto.so (found version "3.0.2")  
+[0.584s] -- Found FastRTPS: /opt/ros/humble/include  
+[0.605s] -- Using RMW implementation 'rmw_fastrtps_cpp' as default
+[0.612s] -- Looking for pthread.h
+[0.645s] -- Looking for pthread.h - found
+[0.646s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+[0.678s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+[0.679s] -- Found Threads: TRUE  
+[0.715s] -- Found rclcpp_components: 16.0.14 (/opt/ros/humble/share/rclcpp_components/cmake)
+[0.735s] -- Found sensor_msgs: 4.9.0 (/opt/ros/humble/share/sensor_msgs/cmake)
+[0.757s] -- Found nav_msgs: 4.9.0 (/opt/ros/humble/share/nav_msgs/cmake)
+[0.769s] -- Found visualization_msgs: 4.9.0 (/opt/ros/humble/share/visualization_msgs/cmake)
+[0.783s] -- Found ackermann_msgs: 2.0.2 (/opt/ros/humble/share/ackermann_msgs/cmake)
+[0.793s] -- Found tf2: 0.25.15 (/opt/ros/humble/share/tf2/cmake)
+[0.796s] -- Found tf2_ros: 0.25.15 (/opt/ros/humble/share/tf2_ros/cmake)
+[0.841s] -- Found tf2_geometry_msgs: 0.25.15 (/opt/ros/humble/share/tf2_geometry_msgs/cmake)
+[0.851s] -- Found eigen3_cmake_module: 0.1.1 (/opt/ros/humble/share/eigen3_cmake_module/cmake)
+[0.853s] -- Found Eigen3: TRUE (found version "3.4.0") 
+[0.853s] -- Ensuring Eigen3 include directory is part of orocos-kdl CMake target
+[0.860s] -- Found ament_lint_auto: 0.12.14 (/opt/ros/humble/share/ament_lint_auto/cmake)
+[0.861s] -- Found ament_cmake_gtest: 1.3.12 (/opt/ros/humble/share/ament_cmake_gtest/cmake)
+[0.909s] -- Found gtest sources under '/opt/ros/humble/src/gtest_vendor': C++ tests using 'Google Test' will be built
+[0.915s] -- Added test 'copyright' to check source files copyright and LICENSE
+[0.925s] -- Added test 'cppcheck' to perform static code analysis on C / C++ code
+[0.925s] -- Configured cppcheck include dirs: $<BUILD_INTERFACE:/home/subin/slam/EKF_SLAM/include>
+[0.925s] -- Configured cppcheck exclude dirs and/or files: 
+[0.931s] -- Added test 'cpplint' to check C / C++ code against the Google style
+[0.931s] -- Configured cpplint exclude dirs and/or files: 
+[0.932s] -- Added test 'flake8' to check Python code syntax and style conventions
+[0.934s] -- Added test 'lint_cmake' to check CMake code style
+[0.935s] -- Added test 'pep257' to check Python code against some of the docstring style conventions in PEP 257
+[0.941s] -- Added test 'uncrustify' to check C / C++ code style
+[0.941s] -- Configured uncrustify additional arguments: 
+[0.942s] -- Added test 'xmllint' to check XML markup files
+[0.944s] -- Configuring done
+[0.958s] -- Generating done
+[0.965s] -- Build files have been written to: /home/subin/slam/EKF_SLAM/build/ekf_slam
+[0.970s] Invoked command in '/home/subin/slam/EKF_SLAM/build/ekf_slam' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/subin/f1tenth_ws/install/f1tenth_gym_ros:/opt/ros/humble /usr/bin/cmake /home/subin/slam/EKF_SLAM -DAMENT_CMAKE_SYMLINK_INSTALL=1 -DCMAKE_INSTALL_PREFIX=/home/subin/slam/EKF_SLAM/install/ekf_slam
+[0.972s] Invoking command in '/home/subin/slam/EKF_SLAM/build/ekf_slam': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/subin/f1tenth_ws/install/f1tenth_gym_ros:/opt/ros/humble /usr/bin/cmake --build /home/subin/slam/EKF_SLAM/build/ekf_slam -- -j4 -l4
+[0.993s] [  7%] [32mBuilding CXX object gtest/CMakeFiles/gtest.dir/src/gtest-all.cc.o[0m
+[0.993s] [ 15%] [32mBuilding CXX object CMakeFiles/ekf_slam_lib.dir/src/core/slam_system.cpp.o[0m
+[0.994s] [ 23%] [32mBuilding CXX object gtest/CMakeFiles/gtest_main.dir/src/gtest_main.cc.o[0m
+[0.994s] [ 30%] [32mBuilding CXX object CMakeFiles/ekf_slam_lib.dir/src/preprocessing/laser_processor.cpp.o[0m
+[1.659s] [ 38%] [32m[1mLinking CXX static library libgtest_main.a[0m
+[1.674s] [ 38%] Built target gtest_main
+[1.678s] [ 46%] [32mBuilding CXX object CMakeFiles/ekf_slam_lib.dir/src/association/data_association.cpp.o[0m
+[3.306s] [ 53%] [32m[1mLinking CXX static library libgtest.a[0m
+[3.354s] [ 53%] Built target gtest
+[3.362s] [ 61%] [32mBuilding CXX object CMakeFiles/ekf_slam_lib.dir/src/mapping/occupancy_mapper.cpp.o[0m
+[9.664s] [ 69%] [32m[1mLinking CXX static library libekf_slam_lib.a[0m
+[9.732s] [ 69%] Built target ekf_slam_lib
+[9.744s] [ 84%] [32mBuilding CXX object CMakeFiles/slam_node.dir/src/core/slam_node.cpp.o[0m
+[9.744s] [ 76%] [32mBuilding CXX object CMakeFiles/test_ekf_core.dir/test/unit_tests/test_ekf_core.cpp.o[0m
+[12.834s] [ 92%] [32m[1mLinking CXX executable test_ekf_core[0m
+[13.238s] [ 92%] Built target test_ekf_core
+[16.676s] [100%] [32m[1mLinking CXX executable slam_node[0m
+[17.233s] [100%] Built target slam_node
+[17.249s] Invoked command in '/home/subin/slam/EKF_SLAM/build/ekf_slam' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/subin/f1tenth_ws/install/f1tenth_gym_ros:/opt/ros/humble /usr/bin/cmake --build /home/subin/slam/EKF_SLAM/build/ekf_slam -- -j4 -l4
+[17.256s] Invoking command in '/home/subin/slam/EKF_SLAM/build/ekf_slam': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/subin/f1tenth_ws/install/f1tenth_gym_ros:/opt/ros/humble /usr/bin/cmake --install /home/subin/slam/EKF_SLAM/build/ekf_slam
+[17.259s] -- Install configuration: ""
+[17.259s] -- Execute custom install script
+[17.260s] -- Symlinking: /home/subin/slam/EKF_SLAM/install/ekf_slam/lib/ekf_slam/slam_node
+[17.263s] -- Symlinking: /home/subin/slam/EKF_SLAM/install/ekf_slam/include//association/data_association.hpp
+[17.267s] -- Symlinking: /home/subin/slam/EKF_SLAM/install/ekf_slam/include//core/slam_node.hpp
+[17.270s] -- Symlinking: /home/subin/slam/EKF_SLAM/install/ekf_slam/include//core/slam_system.hpp
+[17.276s] -- Symlinking: /home/subin/slam/EKF_SLAM/install/ekf_slam/include//mapping/occupancy_mapper.hpp
+[17.279s] -- Symlinking: /home/subin/slam/EKF_SLAM/install/ekf_slam/include//preprocessing/laser_processor.hpp
+[17.283s] -- Symlinking: /home/subin/slam/EKF_SLAM/install/ekf_slam/include//utils/geometry_utils.hpp
+[17.286s] -- Symlinking: /home/subin/slam/EKF_SLAM/install/ekf_slam/include//utils/jacobian_utils.hpp
+[17.289s] -- Symlinking: /home/subin/slam/EKF_SLAM/install/ekf_slam/include//utils/math_utils.hpp
+[17.292s] -- Symlinking: /home/subin/slam/EKF_SLAM/install/ekf_slam/include//utils/matrix_utils.hpp
+[17.295s] -- Symlinking: /home/subin/slam/EKF_SLAM/install/ekf_slam/share/ekf_slam/launch//slam_launch.py
+[17.299s] -- Symlinking: /home/subin/slam/EKF_SLAM/install/ekf_slam/share/ekf_slam/config//slam_params.yaml
+[17.302s] -- Symlinking: /home/subin/slam/EKF_SLAM/install/ekf_slam/share/ekf_slam/environment/library_path.sh
+[17.305s] -- Symlinking: /home/subin/slam/EKF_SLAM/install/ekf_slam/share/ekf_slam/environment/library_path.dsv
+[17.308s] -- Symlinking: /home/subin/slam/EKF_SLAM/install/ekf_slam/share/ament_index/resource_index/package_run_dependencies/ekf_slam
+[17.311s] -- Symlinking: /home/subin/slam/EKF_SLAM/install/ekf_slam/share/ament_index/resource_index/parent_prefix_path/ekf_slam
+[17.314s] -- Symlinking: /home/subin/slam/EKF_SLAM/install/ekf_slam/share/ekf_slam/environment/ament_prefix_path.sh
+[17.317s] -- Symlinking: /home/subin/slam/EKF_SLAM/install/ekf_slam/share/ekf_slam/environment/ament_prefix_path.dsv
+[17.320s] -- Symlinking: /home/subin/slam/EKF_SLAM/install/ekf_slam/share/ekf_slam/environment/path.sh
+[17.323s] -- Symlinking: /home/subin/slam/EKF_SLAM/install/ekf_slam/share/ekf_slam/environment/path.dsv
+[17.327s] -- Symlinking: /home/subin/slam/EKF_SLAM/install/ekf_slam/share/ekf_slam/local_setup.bash
+[17.330s] -- Symlinking: /home/subin/slam/EKF_SLAM/install/ekf_slam/share/ekf_slam/local_setup.sh
+[17.333s] -- Symlinking: /home/subin/slam/EKF_SLAM/install/ekf_slam/share/ekf_slam/local_setup.zsh
+[17.336s] -- Symlinking: /home/subin/slam/EKF_SLAM/install/ekf_slam/share/ekf_slam/local_setup.dsv
+[17.339s] -- Symlinking: /home/subin/slam/EKF_SLAM/install/ekf_slam/share/ekf_slam/package.dsv
+[17.342s] -- Symlinking: /home/subin/slam/EKF_SLAM/install/ekf_slam/share/ament_index/resource_index/packages/ekf_slam
+[17.345s] -- Symlinking: /home/subin/slam/EKF_SLAM/install/ekf_slam/share/ekf_slam/cmake/ament_cmake_export_targets-extras.cmake
+[17.348s] -- Symlinking: /home/subin/slam/EKF_SLAM/install/ekf_slam/share/ekf_slam/cmake/ament_cmake_export_dependencies-extras.cmake
+[17.351s] -- Symlinking: /home/subin/slam/EKF_SLAM/install/ekf_slam/share/ekf_slam/cmake/ekf_slamConfig.cmake
+[17.354s] -- Symlinking: /home/subin/slam/EKF_SLAM/install/ekf_slam/share/ekf_slam/cmake/ekf_slamConfig-version.cmake
+[17.357s] -- Symlinking: /home/subin/slam/EKF_SLAM/install/ekf_slam/share/ekf_slam/package.xml
+[17.360s] -- Installing: /home/subin/slam/EKF_SLAM/install/ekf_slam/lib/libekf_slam_lib.a
+[17.364s] -- Installing: /home/subin/slam/EKF_SLAM/install/ekf_slam/share/ekf_slam/cmake/export_ekf_slamExport.cmake
+[17.364s] -- Installing: /home/subin/slam/EKF_SLAM/install/ekf_slam/share/ekf_slam/cmake/export_ekf_slamExport-noconfig.cmake
+[17.366s] Invoked command in '/home/subin/slam/EKF_SLAM/build/ekf_slam' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/subin/f1tenth_ws/install/f1tenth_gym_ros:/opt/ros/humble /usr/bin/cmake --install /home/subin/slam/EKF_SLAM/build/ekf_slam
