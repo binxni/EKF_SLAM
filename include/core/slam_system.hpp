@@ -1,0 +1,62 @@
+#ifndef EKF_SLAM_SYSTEM_HPP_
+#define EKF_SLAM_SYSTEM_HPP_
+
+#include <vector>
+#include <unordered_map>
+#include <Eigen/Dense>
+
+#include "../preprocessing/laser_processor.hpp"  
+
+namespace ekf_slam
+{
+
+class EkfSlamSystem
+{
+public:
+  EkfSlamSystem(double wheel_base, double noise_x, double noise_y, double noise_theta,
+              double meas_range_noise, double meas_bearing_noise, double data_association_thresh);
+
+  // 예측: 제어입력 (선속도, 조향각), 시간 간격
+  void predict(double v, double delta, double dt);
+
+  // 업데이트: 관측값 (range-bearing)
+  void update(const std::vector<laser::Observation>& observations);
+
+  // 랜드마크 추가
+  void addLandmark(const laser::Observation& obs, int landmark_id);
+
+  // 현재 로봇 위치 (x, y, theta)
+  Eigen::Vector3d getCurrentPose() const;
+
+  // 랜드마크가 이미 있는지 확인
+  bool hasLandmark(int landmark_id) const;
+
+private:
+  // 상태 벡터: [x, y, theta, l1_x, l1_y, l2_x, l2_y, ...]
+  Eigen::VectorXd mu_;
+
+  // 공분산 행렬
+  Eigen::MatrixXd sigma_;
+
+  double noise_x_, noise_y_, noise_theta_, wheel_base_; //control noise
+  double meas_range_noise_, meas_bearing_noise_;
+
+  // 랜드마크 ID → mu_ 인덱스 매핑
+  std::unordered_map<int, int> landmark_index_map_;
+
+  ekf_slam::DataAssociation data_associator_;
+
+  // 상태 확장 함수
+  void extendState(int landmark_id, const laser::Observation& obs);
+
+  //공분산 확장 함수
+  void EkfSlamSystem::expandCovarianceWithLandmark(
+    double range, double bearing, double theta,
+    double range_noise_var, double bearing_noise_var);
+
+
+};
+
+}  // namespace ekf_slam
+
+#endif  // EKF_SLAM_SYSTEM_HPP_
