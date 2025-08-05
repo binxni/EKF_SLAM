@@ -53,7 +53,7 @@ void EkfSlamSystem::predict(double v, double delta, double dt) {
 // 2. Update
 // -----------------------------
 void EkfSlamSystem::update(
-    const std::vector<laser::Observation> &observations) {
+    const std::vector<ekf_slam::laser::Observation> &observations) {
   for (const auto &obs : observations) {
     Eigen::Matrix2d Q = getMeasurementNoiseMatrix();
 
