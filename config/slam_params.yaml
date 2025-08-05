@@ -1,41 +1,12 @@
 ekf_slam:
   ros__parameters:
-    # SLAM Core Parameters
-    max_landmarks: 100
-    data_association_method: "mahalanobis"
-    chi_square_threshold: 5.991
-    min_landmark_quality: 0.3
-    
-    # Noise Models
-    process_noise:
-      linear: 0.1
-      angular: 0.05
-    
-    # LiDAR Processing
-    lidar_processing:
-      min_range: 0.1
-      max_range: 30.0
-      noise_filter_method: "statistical"
-      statistical_k: 10
-      statistical_std_ratio: 2.0
-    
-    # Performance
-    update_frequency: 10.0
-    publish_map_frequency: 1.0
-    
-    # Frame IDs
-    base_frame: "base_link"
-    odom_frame: "odom"
-    map_frame: "map"
-    laser_frame: "laser"
-
     wheel_base: 0.33
-
-  control_noise:
-    x: 0.01
-    y: 0.01
-    theta: 0.01
-
-  measurement_noise:
-    range: 0.05
-    bearing: 0.05
+    control_noise:
+      x: 0.01
+      y: 0.01
+      theta: 0.01
+    measurement_noise:
+      range: 0.05
+      bearing: 0.05
+    data_association:
+      threshold: 5.991
