@@ -42,7 +42,10 @@ void EkfSlamSystem::predict(double v, double delta, double dt) {
   Eigen::MatrixXd Fx = Eigen::MatrixXd::Zero(3, mu_.size());
   Fx.block(0, 0, 3, 3) = Eigen::Matrix3d::Identity();
 
-  sigma_ = sigma_ + Fx.transpose() * Gx.transpose() * R * Gx * Fx;
+  Eigen::MatrixXd G_bar = Eigen::MatrixXd::Identity(mu_.size(), mu_.size());
+  G_bar.block<3,3>(0,0) = Gx;
+
+  sigma_ = G_bar * sigma_ * G_bar.transpose() + Fx.transpose() * R * Fx;
 }
 
 // -----------------------------
