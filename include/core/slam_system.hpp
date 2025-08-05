@@ -20,7 +20,7 @@ public:
   void predict(double v, double delta, double dt);
 
   // 업데이트: 관측값 (range-bearing)
-  void update(const std::vector<laser::Observation>& observations);
+  void update(std::vector<laser::Observation>& observations);
 
   // 랜드마크 추가
   void addLandmark(const laser::Observation& obs, int landmark_id);
@@ -46,11 +46,13 @@ private:
 
   ekf_slam::DataAssociation data_associator_;
 
+  int next_landmark_id_ = 0;
+
   // 상태 확장 함수
   void extendState(int landmark_id, const laser::Observation& obs);
 
   //공분산 확장 함수
-  void EkfSlamSystem::expandCovarianceWithLandmark(
+  void expandCovarianceWithLandmark(
     double range, double bearing, double theta,
     double range_noise_var, double bearing_noise_var);
 

@@ -5,11 +5,13 @@
 
 namespace ekf_slam 
 {
-EkfSlamSystem::EkfSlamSystem(double wheel_base, double noise_x, double noise_y, 
+EkfSlamSystem::EkfSlamSystem(double wheel_base, double noise_x, double noise_y,
   double noise_theta, double meas_range_noise, double meas_bearing_noise, double assoc_thresh)
   : wheel_base_(wheel_base), noise_x_(noise_x), noise_y_(noise_y),
-    noise_theta_(noise_theta), meas_range_noise_(meas_range_noise), 
-    meas_bearing_noise_(meas_bearing_noise), data_associator_(assoc_thresh)
+    noise_theta_(noise_theta),
+    meas_range_noise_(meas_range_noise * meas_range_noise),
+    meas_bearing_noise_(meas_bearing_noise * meas_bearing_noise),
+    data_associator_(assoc_thresh)
 {
   mu_ = Eigen::VectorXd::Zero(3);
   sigma_ = Eigen::MatrixXd::Identity(3, 3) * 1e-3;
@@ -50,22 +52,24 @@ void EkfSlamSystem::predict(double v, double delta, double dt)
 // -----------------------------
 // 2. Update
 // -----------------------------
-void EkfSlamSystem::update(const std::vector<laser::Observation>& observations)
+void EkfSlamSystem::update(std::vector<laser::Observation>& observations)
 {
-  for (const auto& obs : observations)
+  Eigen::Matrix2d Q = Eigen::Matrix2d::Zero();
+  Q(0,0) = meas_range_noise_;
+  Q(1,1) = meas_bearing_noise_;
+
+  for (auto& obs : observations)
   {
-    for (auto& obs : observations)
-    {
-      // 데이터 연관
-      int id = data_associator_.associate(obs, mu_, sigma_, landmark_index_map_, getMeasurementNoiseMatrix());
-      if (id == -1) {
-        id = next_landmark_id_++;
-        obs.landmark_id = id;
-        addLandmark(obs, id);
-        continue;
-      } else {
-        obs.landmark_id = id;
-      }
+    // 데이터 연관
+    int id = data_associator_.associate(obs, mu_, sigma_, landmark_index_map_, Q);
+    if (id == -1) {
+      id = next_landmark_id_++;
+      obs.landmark_id = id;
+      addLandmark(obs, id);
+      continue;
+    } else {
+      obs.landmark_id = id;
+    }
 
     int idx = landmark_index_map_[id];
     double lx = mu_(idx);
@@ -88,17 +92,13 @@ void EkfSlamSystem::update(const std::vector<laser::Observation>& observations)
     // 자코비안 H
     Eigen::MatrixXd H = ekf_slam::utils::computeObservationJacobian(mu_, idx);
 
-    // 측정 노이즈
-    Eigen::Matrix2d Q = Eigen::Matrix2d::Zero();
-    Q(0,0) = meas_range_noise_;
-    Q(1,1) = meas_bearing_noise_;
-
     // 칼만 게인
     Eigen::MatrixXd S = H * sigma_ * H.transpose() + Q;
     Eigen::MatrixXd K = sigma_ * H.transpose() * S.inverse();
 
     // 상태, 공분산 업데이트
     mu_ = mu_ + K * innovation;
+    mu_(2) = std::atan2(std::sin(mu_(2)), std::cos(mu_(2)));
     sigma_ = (Eigen::MatrixXd::Identity(mu_.size(), mu_.size()) - K * H) * sigma_;
   }
 }
@@ -129,8 +129,8 @@ void EkfSlamSystem::extendState(int landmark_id, const laser::Observation& obs)
   mu_(old_size + 1) = ly;
 
   // 하이퍼파라미터 값 사용
-  double range_noise_var = meas_range_noise_ * meas_range_noise_;
-  double bearing_noise_var = meas_bearing_noise_ * meas_bearing_noise_;
+  double range_noise_var = meas_range_noise_;
+  double bearing_noise_var = meas_bearing_noise_;
   
   expandCovarianceWithLandmark(
       obs.range, obs.bearing, theta,
