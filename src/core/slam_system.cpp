@@ -54,55 +54,50 @@ void EkfSlamSystem::predict(double v, double delta, double dt) {
 void EkfSlamSystem::update(
     const std::vector<laser::Observation> &observations) {
   for (const auto &obs : observations) {
-    for (auto &obs : observations) {
-      // 데이터 연관
-      int id = data_associator_.associate(obs, mu_, sigma_, landmark_index_map_,
-                                          getMeasurementNoiseMatrix());
-      if (id == -1) {
-        id = next_landmark_id_++;
-        obs.landmark_id = id;
-        addLandmark(obs, id);
-        continue;
-      } else {
-        obs.landmark_id = id;
-      }
+    // 데이터 연관
+    int id = data_associator_.associate(obs, mu_, sigma_, landmark_index_map_,
+                                        getMeasurementNoiseMatrix());
+    if (id == -1) {
+      id = next_landmark_id_++;
+      obs.landmark_id = id;
+      addLandmark(obs, id);
+      continue;
+    } else { obs.landmark_id = id;}
 
-      int idx = landmark_index_map_[id];
-      double lx = mu_(idx);
-      double ly = mu_(idx + 1);
+    int idx = landmark_index_map_[id];
+    double lx = mu_(idx);
+    double ly = mu_(idx + 1);
+    double dx = lx - mu_(0);
+    double dy = ly - mu_(1);
+    double q = dx * dx + dy * dy;
 
-      double dx = lx - mu_(0);
-      double dy = ly - mu_(1);
-      double q = dx * dx + dy * dy;
+    double z_hat_range = std::sqrt(q);
+    double z_hat_bearing = std::atan2(dy, dx) - mu_(2);
+    double z_hat_bearing_norm =
+    std::atan2(std::sin(z_hat_bearing), std::cos(z_hat_bearing));
 
-      double z_hat_range = std::sqrt(q);
-      double z_hat_bearing = std::atan2(dy, dx) - mu_(2);
-      double z_hat_bearing_norm =
-          std::atan2(std::sin(z_hat_bearing), std::cos(z_hat_bearing));
-
-      // 측정 예측 벡터
-      Eigen::Vector2d z_hat(z_hat_range, z_hat_bearing_norm);
-      Eigen::Vector2d z(obs.range, obs.bearing);
-      Eigen::Vector2d innovation = z - z_hat;
-      innovation(1) = std::atan2(std::sin(innovation(1)),
+    // 측정 예측 벡터
+    Eigen::Vector2d z_hat(z_hat_range, z_hat_bearing_norm);
+    Eigen::Vector2d z(obs.range, obs.bearing);
+    Eigen::Vector2d innovation = z - z_hat;
+    innovation(1) = std::atan2(std::sin(innovation(1)),
                                  std::cos(innovation(1))); // normalize
 
-      // 자코비안 H
-      Eigen::MatrixXd H = ekf_slam::utils::computeObservationJacobian(mu_, idx);
+    // 자코비안 H
+    Eigen::MatrixXd H = ekf_slam::utils::computeObservationJacobian(mu_, idx);
 
-      // 측정 노이즈
-      Eigen::Matrix2d Q = Eigen::Matrix2d::Zero();
-      Q(0, 0) = meas_range_noise_;
-      Q(1, 1) = meas_bearing_noise_;
+    // 측정 노이즈
+    Eigen::Matrix2d Q = Eigen::Matrix2d::Zero();
+    Q(0, 0) = meas_range_noise_;
+    Q(1, 1) = meas_bearing_noise_;
 
-      // 칼만 게인
-      Eigen::MatrixXd S = H * sigma_ * H.transpose() + Q;
-      Eigen::MatrixXd K = sigma_ * H.transpose() * S.inverse();
+    // 칼만 게인
+    Eigen::MatrixXd S = H * sigma_ * H.transpose() + Q;
+    Eigen::MatrixXd K = sigma_ * H.transpose() * S.inverse();
 
-      // 상태, 공분산 업데이트
-      mu_ = mu_ + K * innovation;
-      sigma_ =
-          (Eigen::MatrixXd::Identity(mu_.size(), mu_.size()) - K * H) * sigma_;
+    // 상태, 공분산 업데이트
+    mu_ = mu_ + K * innovation;
+    sigma_ = (Eigen::MatrixXd::Identity(mu_.size(), mu_.size()) - K * H) * sigma_;
     }
   }
 

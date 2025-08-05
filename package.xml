@@ -8,7 +8,7 @@
   
   <maintainer email="subin.park017@gmail.com">Subin Park</maintainer>
   <license>Apache License 2.0</license>
-  <url type="website">https://github.com/yourusername/lidar_ekf_slam</url>
+  <url type="website">https://github.com/binxni/ekf_slam</url>
   <author email="subin.park017@gmail.com">Subin Park</author>
 
   <!-- Build dependencies -->
