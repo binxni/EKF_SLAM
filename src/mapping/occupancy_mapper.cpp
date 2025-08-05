@@ -7,8 +7,13 @@ namespace ekf_slam {
 
 OccupancyMapper::OccupancyMapper(rclcpp::Node::SharedPtr node,
                                 int map_width, int map_height, double resolution)
-    : node_(node), map_width_(map_width), map_height_(map_height), 
-      resolution_(resolution), running_(false), initialized_(false), max_range_(10.0) {
+    : node_(node),
+      map_width_(map_width),
+      map_height_(map_height),
+      resolution_(resolution),
+      max_range_(10.0),
+      running_(false),
+      initialized_(false) {
     
     // 맵 원점 설정 (맵 중앙)
     origin_x_ = map_width_ * resolution_ / 2.0;
