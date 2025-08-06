@@ -13,7 +13,7 @@ LaserProcessor::LaserProcessor(
   const std::string & base_frame,
   std::size_t downsample_step)
 : node_(node), tf_buffer_(tf_buffer), base_frame_(base_frame),
-  downsample_step_(downsample_step ? downsample_step : 1)
+  downsample_step_(downsample_step ? downsample_step : 10)
 {
 }
 

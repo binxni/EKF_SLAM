@@ -40,4 +40,5 @@ def generate_launch_description():
     return LaunchDescription([
         use_sim_time_arg,
         config_file_arg,
+        slam_node
     ])

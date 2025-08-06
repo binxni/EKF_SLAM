@@ -10,3 +10,9 @@ ekf_slam:
       bearing: 0.05
     data_association:
       threshold: 5.991
+    scan_downsample: 
+      step: 10
+  map : 
+    width: 1500
+    height: 1500
+    resolution: 0.05

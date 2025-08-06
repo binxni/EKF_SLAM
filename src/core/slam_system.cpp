@@ -50,6 +50,7 @@ void EkfSlamSystem::predict(double v, double delta, double dt) {
   G_bar.block<3,3>(0,0) = Gx;
 
   sigma_ = G_bar * sigma_ * G_bar.transpose() + Fx.transpose() * R * Fx;
+  
   info_matrix_ = sigma_.inverse().sparseView();
   info_vector_ = info_matrix_ * mu_;
 }

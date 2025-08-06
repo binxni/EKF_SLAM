@@ -23,7 +23,10 @@ SlamNode::SlamNode() : Node("ekf_slam_node")
   this->declare_parameter("measurement_noise.range", 0.05);
   this->declare_parameter("measurement_noise.bearing", 0.05);
   this->declare_parameter("data_association.threshold", 5.99);
-  this->declare_parameter("scan_downsample", 1);
+  this->declare_parameter("scan_downsample.step", 10);
+  this->declare_parameter("map.width", 1500);
+  this->declare_parameter("map.height", 1500);
+  this->declare_parameter("map.resolution", 0.05);
 
   // 파라미터 불러오기 → 바로 멤버 변수에 저장
   this->get_parameter("control_noise.x", noise_x_);
@@ -33,7 +36,10 @@ SlamNode::SlamNode() : Node("ekf_slam_node")
   this->get_parameter("measurement_noise.range", meas_range_noise_);
   this->get_parameter("measurement_noise.bearing", meas_bearing_noise_);
   this->get_parameter("data_association.threshold", assoc_thresh_);
-  this->get_parameter("scan_downsample", scan_downsample_);
+  this->get_parameter("scan_downsample.step", scan_downsample_);
+  this->get_parameter("map.width", map_width_);
+  this->get_parameter("map.height", map_height_);
+  this->get_parameter("map.resolution", resolution_);
 
   // EKF SLAM 시스템 생성시 멤버 변수 사용
   ekf_ = std::make_shared<EkfSlamSystem>(
@@ -49,18 +55,26 @@ void SlamNode::initialize()
   // LaserScan 전처리기 초기화
   laser_processor_ = std::make_shared<laser::LaserProcessor>(
     shared_from_this(), tf_buffer_.get(), "base_link", static_cast<std::size_t>(scan_downsample_));
-
+  
+  RCLCPP_INFO(this->get_logger(), "Laser Processor Initialized with downsample step: %d", scan_downsample_);
+  
   // Occupancy Mapper 초기화 추가
   occupancy_mapper_ = std::make_shared<OccupancyMapper>(
       shared_from_this(),  // 현재 노드 전달
-      2000,  // map_width
-      2000,  // map_height
-      0.05   // resolution (5cm)
+      map_width_,
+      map_height_,
+      resolution_
   );
+  RCLCPP_INFO(this->get_logger(), "Occupancy Mapper Initialized with size: %dx%d, resolution: %.2f",
+              map_width_, map_height_, resolution_);
 
   occupancy_mapper_->startMapping();
+  RCLCPP_INFO(this->get_logger(), "Occupancy Mapping started.");
+  
+  // 이전 시간 초기화
+  last_cmd_time_ = this->now();
 
-  // LaserScan 구독
+  // LaserScan 구독 
   scan_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
     "scan", 10, std::bind(&SlamNode::scanCallback, this, std::placeholders::_1));
 
