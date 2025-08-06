@@ -1,6 +1,7 @@
 #include "core/slam_system.hpp"
 #include "association/data_association.hpp"
 #include "utils/jacobian_utils.hpp"
+#include <Eigen/SparseCholesky>
 #include <cmath>
 
 namespace ekf_slam {
@@ -13,6 +14,8 @@ EkfSlamSystem::EkfSlamSystem(double wheel_base, double noise_x, double noise_y,
       next_landmark_id_(0) {
   mu_ = Eigen::VectorXd::Zero(3);
   sigma_ = Eigen::MatrixXd::Identity(3, 3) * 1e-3;
+  info_matrix_ = sigma_.inverse().sparseView();
+  info_vector_ = info_matrix_ * mu_;
 }
 
 // -----------------------------
@@ -47,6 +50,8 @@ void EkfSlamSystem::predict(double v, double delta, double dt) {
   G_bar.block<3,3>(0,0) = Gx;
 
   sigma_ = G_bar * sigma_ * G_bar.transpose() + Fx.transpose() * R * Fx;
+  info_matrix_ = sigma_.inverse().sparseView();
+  info_vector_ = info_matrix_ * mu_;
 }
 
 // -----------------------------
@@ -56,7 +61,6 @@ void EkfSlamSystem::update(
     const std::vector<ekf_slam::laser::Observation> &observations) {
   for (const auto &obs : observations) {
     Eigen::Matrix2d Q = getMeasurementNoiseMatrix();
-
     int id = data_associator_.associate(obs, mu_, sigma_, landmark_index_map_, Q);
     if (id == -1) {
       id = next_landmark_id_++;
@@ -74,26 +78,28 @@ void EkfSlamSystem::update(
     double z_hat_range = std::sqrt(q);
     double z_hat_bearing = std::atan2(dy, dx) - mu_(2);
     double z_hat_bearing_norm =
-    std::atan2(std::sin(z_hat_bearing), std::cos(z_hat_bearing));
+        std::atan2(std::sin(z_hat_bearing), std::cos(z_hat_bearing));
 
-    // 측정 예측 벡터
     Eigen::Vector2d z_hat(z_hat_range, z_hat_bearing_norm);
     Eigen::Vector2d z(obs.range, obs.bearing);
     Eigen::Vector2d innovation = z - z_hat;
-    innovation(1) = std::atan2(std::sin(innovation(1)),
-                                 std::cos(innovation(1))); // normalize
+    innovation(1) =
+        std::atan2(std::sin(innovation(1)), std::cos(innovation(1)));
 
-    // 자코비안 H
     Eigen::MatrixXd H = ekf_slam::utils::computeObservationJacobian(mu_, idx);
+    Eigen::Matrix2d Q_inv = Q.inverse();
+    Eigen::MatrixXd Ht_Qinv = H.transpose() * Q_inv;
 
-    // 칼만 게인
-    Eigen::MatrixXd S = H * sigma_ * H.transpose() + Q;
-    Eigen::MatrixXd K = sigma_ * H.transpose() * S.inverse();
-
-    // 상태, 공분산 업데이트
-    mu_ = mu_ + K * innovation;
-    sigma_ = (Eigen::MatrixXd::Identity(mu_.size(), mu_.size()) - K * H) * sigma_;
+    info_matrix_ += (Ht_Qinv * H).sparseView();
+    info_vector_ += Ht_Qinv * (innovation + H * mu_);
   }
+
+  sparsifyInformationMatrix(1e-6);
+  Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> solver(info_matrix_);
+  mu_ = solver.solve(info_vector_);
+  sigma_ = solver.solve(
+      Eigen::MatrixXd::Identity(info_matrix_.rows(), info_matrix_.cols()));
+  info_vector_ = info_matrix_ * mu_;
 }
 
   // -----------------------------
@@ -132,6 +138,9 @@ void EkfSlamSystem::update(
     mu_(old_size + 1) = ly;
 
     landmark_index_map_[landmark_id] = old_size;
+
+    info_matrix_ = sigma_.inverse().sparseView();
+    info_vector_ = info_matrix_ * mu_;
   }
   // -----------------------------
   // 5. 기타 유틸
@@ -193,6 +202,10 @@ Eigen::Matrix2d EkfSlamSystem::getMeasurementNoiseMatrix() const {
   Q(0, 0) = meas_range_noise_;
   Q(1, 1) = meas_bearing_noise_;
   return Q;
+}
+
+void EkfSlamSystem::sparsifyInformationMatrix(double threshold) {
+  info_matrix_.prune(threshold);
 }
 
 } // namespace ekf_slam

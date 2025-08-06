@@ -21,8 +21,9 @@ SlamNode::SlamNode() : Node("ekf_slam_node")
   this->declare_parameter("control_noise.theta", 0.01);
   this->declare_parameter("wheel_base", 0.33);
   this->declare_parameter("measurement_noise.range", 0.05);
-  this->declare_parameter("measurement_noise.bearing", 0.05); 
+  this->declare_parameter("measurement_noise.bearing", 0.05);
   this->declare_parameter("data_association.threshold", 5.99);
+  this->declare_parameter("scan_downsample", 1);
 
   // 파라미터 불러오기 → 바로 멤버 변수에 저장
   this->get_parameter("control_noise.x", noise_x_);
@@ -32,6 +33,7 @@ SlamNode::SlamNode() : Node("ekf_slam_node")
   this->get_parameter("measurement_noise.range", meas_range_noise_);
   this->get_parameter("measurement_noise.bearing", meas_bearing_noise_);
   this->get_parameter("data_association.threshold", assoc_thresh_);
+  this->get_parameter("scan_downsample", scan_downsample_);
 
   // EKF SLAM 시스템 생성시 멤버 변수 사용
   ekf_ = std::make_shared<EkfSlamSystem>(
@@ -46,7 +48,7 @@ void SlamNode::initialize()
 {
   // LaserScan 전처리기 초기화
   laser_processor_ = std::make_shared<laser::LaserProcessor>(
-    shared_from_this(), tf_buffer_.get(), "base_link");
+    shared_from_this(), tf_buffer_.get(), "base_link", static_cast<std::size_t>(scan_downsample_));
 
   // Occupancy Mapper 초기화 추가
   occupancy_mapper_ = std::make_shared<OccupancyMapper>(

@@ -2,6 +2,7 @@
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 #include "tf2/utils.h"
 #include <vector>
+#include <algorithm>
 
 namespace ekf_slam::laser
 {
@@ -9,8 +10,10 @@ namespace ekf_slam::laser
 LaserProcessor::LaserProcessor(
   rclcpp::Node::SharedPtr node,
   tf2_ros::Buffer * tf_buffer,
-  const std::string & base_frame)
-: node_(node), tf_buffer_(tf_buffer), base_frame_(base_frame)
+  const std::string & base_frame,
+  std::size_t downsample_step)
+: node_(node), tf_buffer_(tf_buffer), base_frame_(base_frame),
+  downsample_step_(downsample_step ? downsample_step : 1)
 {
 }
 
@@ -29,16 +32,14 @@ std::vector<Observation> LaserProcessor::process(
     double theta = tf2::getYaw(tf.transform.rotation);
 
     double angle = scan_copy.angle_min;
-    for (size_t i = 0; i < scan_copy.ranges.size(); ++i) {
+    std::size_t step = std::max<std::size_t>(1, downsample_step_);
+    for (std::size_t i = 0; i < scan_copy.ranges.size(); i += step) {
       double r = scan_copy.ranges[i];
-      if (r < scan_copy.range_min || r > scan_copy.range_max) {
-        angle += scan_copy.angle_increment;
-        continue;
+      if (r >= scan_copy.range_min && r <= scan_copy.range_max) {
+        double bearing = normalizeAngle(angle + theta);
+        observations.push_back({r, bearing, -1});
       }
-
-      double bearing = normalizeAngle(angle + theta);
-      observations.push_back({r, bearing, -1});
-      angle += scan_copy.angle_increment;
+      angle += scan_copy.angle_increment * step;
     }
 
   } catch (tf2::TransformException & e) {
