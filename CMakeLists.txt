@@ -47,7 +47,10 @@ ament_target_dependencies(${PROJECT_NAME}_lib
 )
 
 # slam node Executables
-add_executable(slam_node src/core/slam_node.cpp)
+add_executable(slam_node
+  src/core/slam_node.cpp
+  src/visualization/trajectory_visualizer.cpp
+)
 ament_target_dependencies(slam_node
   rclcpp
   std_msgs
