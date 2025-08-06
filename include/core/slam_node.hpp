@@ -9,6 +9,7 @@
 #include "sensor_msgs/msg/laser_scan.hpp"
 #include "nav_msgs/msg/occupancy_grid.hpp"
 #include "ackermann_msgs/msg/ackermann_drive_stamped.hpp"
+#include "visualization_msgs/msg/marker.hpp"
 
 #include "tf2_ros/transform_listener.h"
 #include "tf2_ros/buffer.h"
@@ -63,6 +64,10 @@ private:
 
   // ROS2 Publisher for map
   rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr map_pub_;
+  // ROS2 Publisher for trajectory markers
+  rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr marker_pub_;
+  visualization_msgs::msg::Marker path_points_marker_;
+  visualization_msgs::msg::Marker path_line_marker_;
 
   // 주기적 맵 출력을 위한 타이머
   rclcpp::TimerBase::SharedPtr map_timer_;

@@ -85,6 +85,34 @@ void SlamNode::initialize()
   // 맵 퍼블리셔 초기화
   map_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>("map", 10);
 
+  // 경로 마커 퍼블리셔와 초기 설정
+  marker_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("trajectory", 10);
+  path_points_marker_.header.frame_id = "map";
+  path_points_marker_.ns = "trajectory";
+  path_points_marker_.id = 0;
+  path_points_marker_.type = visualization_msgs::msg::Marker::SPHERE_LIST;
+  path_points_marker_.action = visualization_msgs::msg::Marker::ADD;
+  path_points_marker_.pose.orientation.w = 1.0;
+  path_points_marker_.scale.x = 0.1;
+  path_points_marker_.scale.y = 0.1;
+  path_points_marker_.scale.z = 0.1;
+  path_points_marker_.color.r = 0.0;
+  path_points_marker_.color.g = 1.0;
+  path_points_marker_.color.b = 0.0;
+  path_points_marker_.color.a = 1.0;
+
+  path_line_marker_.header.frame_id = "map";
+  path_line_marker_.ns = "trajectory";
+  path_line_marker_.id = 1;
+  path_line_marker_.type = visualization_msgs::msg::Marker::LINE_STRIP;
+  path_line_marker_.action = visualization_msgs::msg::Marker::ADD;
+  path_line_marker_.pose.orientation.w = 1.0;
+  path_line_marker_.scale.x = 0.05;
+  path_line_marker_.color.r = 1.0;
+  path_line_marker_.color.g = 0.0;
+  path_line_marker_.color.b = 0.0;
+  path_line_marker_.color.a = 1.0;
+
   // 주기적으로 맵 publish (1초 간격)
   map_timer_ = this->create_wall_timer( std::chrono::seconds(1), std::bind(&SlamNode::publishMap, this));
 }
@@ -124,6 +152,19 @@ void SlamNode::scanCallback(const sensor_msgs::msg::LaserScan::SharedPtr msg)
 
   //occupancy mapping을 위한 데이터 전송
   occupancy_mapper_->addScanData(pose, *msg);
+
+  // 경로 마커 업데이트 및 publish
+  geometry_msgs::msg::Point p;
+  p.x = pose(0);
+  p.y = pose(1);
+  p.z = 0.0;
+  path_points_marker_.points.push_back(p);
+  path_line_marker_.points.push_back(p);
+  auto now = this->now();
+  path_points_marker_.header.stamp = now;
+  path_line_marker_.header.stamp = now;
+  marker_pub_->publish(path_points_marker_);
+  marker_pub_->publish(path_line_marker_);
 
 }
 
