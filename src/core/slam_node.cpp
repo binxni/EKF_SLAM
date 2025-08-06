@@ -1,7 +1,6 @@
 #include "core/slam_node.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
-#include "nav_msgs/msg/odometry.hpp"
 
 #include <memory>
 
@@ -85,6 +84,9 @@ void SlamNode::initialize()
   // 맵 퍼블리셔 초기화
   map_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>("map", 10);
 
+  // Trajectory visualizer
+  trajectory_visualizer_ = std::make_shared<TrajectoryVisualizer>(shared_from_this());
+
   // 주기적으로 맵 publish (1초 간격)
   map_timer_ = this->create_wall_timer( std::chrono::seconds(1), std::bind(&SlamNode::publishMap, this));
 }
@@ -124,6 +126,11 @@ void SlamNode::scanCallback(const sensor_msgs::msg::LaserScan::SharedPtr msg)
 
   //occupancy mapping을 위한 데이터 전송
   occupancy_mapper_->addScanData(pose, *msg);
+
+  // Update trajectory visualization
+  if (trajectory_visualizer_) {
+    trajectory_visualizer_->addPose(pose(0), pose(1), this->now());
+  }
 
 }
 
