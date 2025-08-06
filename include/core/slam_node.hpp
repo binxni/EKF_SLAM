@@ -35,6 +35,7 @@ private:
   double wheel_base_;
   double meas_range_noise_, meas_bearing_noise_;
   double assoc_thresh_;
+  int scan_downsample_;
 
   // LaserScan 수신 콜백
   void scanCallback(const sensor_msgs::msg::LaserScan::SharedPtr msg);
