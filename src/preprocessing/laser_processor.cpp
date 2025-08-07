@@ -83,8 +83,10 @@ void LaserProcessor::invertScan(sensor_msgs::msg::LaserScan & scan)
 {
   std::reverse(scan.ranges.begin(), scan.ranges.end());
   std::reverse(scan.intensities.begin(), scan.intensities.end());
-  scan.angle_min = -scan.angle_max;
-  scan.angle_max = -scan.angle_min;
+  double orig_min = scan.angle_min;
+  double orig_max = scan.angle_max;
+  scan.angle_min = -orig_max;
+  scan.angle_max = -orig_min;
   scan.angle_increment = -scan.angle_increment;
 }
 
