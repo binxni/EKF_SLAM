@@ -23,6 +23,18 @@ EkfSlamSystem::EkfSlamSystem(double wheel_base, double noise_x, double noise_y,
 // 1. Predict
 // -----------------------------
 void EkfSlamSystem::predict(double v, double delta, double dt) {
+  double theta = mu_(2);
+  double w = (v / wheel_base_) * std::tan(delta);
+
+  // Integrate the bicycle model exactly for better turning behaviour
+  if (std::fabs(w) > 1e-6) {
+    mu_(0) += (v / w) * (std::sin(theta + w * dt) - std::sin(theta));
+    mu_(1) += (v / w) * (-std::cos(theta + w * dt) + std::cos(theta));
+  } else {
+    mu_(0) += v * std::cos(theta) * dt;
+    mu_(1) += v * std::sin(theta) * dt;
+  }
+  mu_(2) = utils::normalizeAngle(theta + w * dt);
   double theta = mu_(2); // 현재 heading
 
   // 상태 변화량 계산
@@ -36,7 +48,8 @@ void EkfSlamSystem::predict(double v, double delta, double dt) {
   mu_(2) = utils::normalizeAngle(mu_(2));
 
   // 자코비안 계산 (Gx)
-  Eigen::Matrix3d Gx = ekf_slam::utils::computeMotionJacobian(v, theta, dt);
+  Eigen::Matrix3d Gx =
+      ekf_slam::utils::computeMotionJacobian(v, theta, w, dt);
 
   // 제어 노이즈
   Eigen::Matrix3d R = Eigen::Matrix3d::Zero();
