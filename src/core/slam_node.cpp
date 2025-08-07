@@ -67,34 +67,30 @@ void SlamNode::initialize()
   RCLCPP_INFO(this->get_logger(), "Occupancy Mapper Initialized with size: %dx%d, resolution: %.2f",
               map_width_, map_height_, resolution_);
 
-<<<<<<< Updated upstream
+  // Start occupancy mapping
   occupancy_mapper_->startMapping();
   RCLCPP_INFO(this->get_logger(), "Occupancy Mapping started.");
-  
-  // 이전 시간 초기화
+
+  // Initialize previous command time
   last_cmd_time_ = this->now();
 
-  // LaserScan 구독 
-=======
-  // ackermann 구독 (EKF 예측 입력)
+  // ackermann subscription (EKF predict input)
   ackermann_sub_ = this->create_subscription<ackermann_msgs::msg::AckermannDriveStamped>(
-  "ackermann_cmd", 10, std::bind(&SlamNode::ackermannCallback, this, std::placeholders::_1) );
+    "ackermann_cmd", 10, std::bind(&SlamNode::ackermannCallback, this, std::placeholders::_1));
 
-  // LaserScan 구독 (EKF 업데이트 입력)
->>>>>>> Stashed changes
+  // LaserScan subscription (EKF update input)
   scan_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
     "scan", 10, std::bind(&SlamNode::scanCallback, this, std::placeholders::_1));
 
-  occupancy_mapper_->startMapping();
-
-  // 맵 퍼블리셔 초기화
+  // Map publisher
   map_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>("map", 10);
 
   // Trajectory visualizer
   trajectory_visualizer_ = std::make_shared<TrajectoryVisualizer>(shared_from_this());
 
-  // 주기적으로 맵 publish (1초 간격)
-  map_timer_ = this->create_wall_timer( std::chrono::seconds(1), std::bind(&SlamNode::publishMap, this));
+  // Periodic map publish timer (1 second interval)
+  map_timer_ = this->create_wall_timer(
+    std::chrono::seconds(1), std::bind(&SlamNode::publishMap, this));
 }
 
 SlamNode::~SlamNode()
@@ -108,7 +104,7 @@ void SlamNode::ackermannCallback(const ackermann_msgs::msg::AckermannDriveStampe
   double v = msg->drive.speed;             // 선속도
   double delta = msg->drive.steering_angle; // 조향각
 
-  rclcpp::Time current_time = msg->header.stamp;
+  rclcpp::Time current_time = this->now();
   double dt = (current_time - last_cmd_time_).seconds();
   last_cmd_time_ = current_time;
 
