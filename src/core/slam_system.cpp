@@ -81,14 +81,13 @@ void EkfSlamSystem::update(
 
     double z_hat_range = std::sqrt(q);
     double z_hat_bearing = std::atan2(dy, dx) - mu_(2);
-    double z_hat_bearing_norm =
-        std::atan2(std::sin(z_hat_bearing), std::cos(z_hat_bearing));
+    double z_hat_bearing_norm = utils::normalizeAngle(z_hat_bearing);
 
+    double measured_bearing = utils::normalizeAngle(obs.bearing);
     Eigen::Vector2d z_hat(z_hat_range, z_hat_bearing_norm);
-    Eigen::Vector2d z(obs.range, obs.bearing);
+    Eigen::Vector2d z(obs.range, measured_bearing);
     Eigen::Vector2d innovation = z - z_hat;
-    innovation(1) =
-        std::atan2(std::sin(innovation(1)), std::cos(innovation(1)));
+    innovation(1) = utils::normalizeAngle(innovation(1));
 
     Eigen::MatrixXd H = ekf_slam::utils::computeObservationJacobian(mu_, idx);
     Eigen::Matrix2d Q_inv = Q.inverse();
@@ -207,8 +206,8 @@ void EkfSlamSystem::expandCovarianceWithLandmark(int old_size, double range,
 
 Eigen::Matrix2d EkfSlamSystem::getMeasurementNoiseMatrix() const {
   Eigen::Matrix2d Q = Eigen::Matrix2d::Zero();
-  Q(0, 0) = meas_range_noise_;
-  Q(1, 1) = meas_bearing_noise_;
+  Q(0, 0) = meas_range_noise_ * meas_range_noise_;
+  Q(1, 1) = meas_bearing_noise_ * meas_bearing_noise_;
   return Q;
 }
 
