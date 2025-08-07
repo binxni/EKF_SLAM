@@ -3,6 +3,7 @@
 #include "tf2/utils.h"
 #include <vector>
 #include <algorithm>
+#include <cmath>
 
 namespace ekf_slam::laser
 {
@@ -28,16 +29,27 @@ std::vector<Observation> LaserProcessor::process(
   }
 
   try {
-    auto tf = tf_buffer_->lookupTransform(base_frame_, scan.header.frame_id, scan.header.stamp, rclcpp::Duration::from_seconds(0.1));
+    auto tf = tf_buffer_->lookupTransform(
+      base_frame_, scan.header.frame_id, scan.header.stamp, rclcpp::Duration::from_seconds(0.1));
     double theta = tf2::getYaw(tf.transform.rotation);
+    double tx = tf.transform.translation.x;
+    double ty = tf.transform.translation.y;
 
     double angle = scan_copy.angle_min;
     std::size_t step = std::max<std::size_t>(1, downsample_step_);
     for (std::size_t i = 0; i < scan_copy.ranges.size(); i += step) {
       double r = scan_copy.ranges[i];
       if (r >= scan_copy.range_min && r <= scan_copy.range_max) {
-        double bearing = normalizeAngle(angle + theta);
-        observations.push_back({r, bearing, -1});
+        // Transform the point from laser frame to base frame using 2D transform
+        double x_laser = r * std::cos(angle);
+        double y_laser = r * std::sin(angle);
+
+        double x_base = std::cos(theta) * x_laser - std::sin(theta) * y_laser + tx;
+        double y_base = std::sin(theta) * x_laser + std::cos(theta) * y_laser + ty;
+
+        double range = std::sqrt(x_base * x_base + y_base * y_base);
+        double bearing = normalizeAngle(std::atan2(y_base, x_base));
+        observations.push_back({range, bearing, -1});
       }
       angle += scan_copy.angle_increment * step;
     }
