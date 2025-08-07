@@ -3,6 +3,7 @@
 
 #include <Eigen/Dense>
 #include <unordered_map>
+#include "preprocessing/laser_processor.hpp"
 
 namespace ekf_slam {
 
@@ -10,7 +11,7 @@ namespace ekf_slam {
 namespace laser {
 struct Observation;
 }  // namespace laser
-    
+
 class DataAssociation {
 public:
     DataAssociation(double mahalanobis_thresh);

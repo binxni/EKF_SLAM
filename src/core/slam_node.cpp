@@ -67,6 +67,7 @@ void SlamNode::initialize()
   RCLCPP_INFO(this->get_logger(), "Occupancy Mapper Initialized with size: %dx%d, resolution: %.2f",
               map_width_, map_height_, resolution_);
 
+<<<<<<< Updated upstream
   occupancy_mapper_->startMapping();
   RCLCPP_INFO(this->get_logger(), "Occupancy Mapping started.");
   
@@ -74,12 +75,17 @@ void SlamNode::initialize()
   last_cmd_time_ = this->now();
 
   // LaserScan 구독 
+=======
+  // ackermann 구독 (EKF 예측 입력)
+  ackermann_sub_ = this->create_subscription<ackermann_msgs::msg::AckermannDriveStamped>(
+  "ackermann_cmd", 10, std::bind(&SlamNode::ackermannCallback, this, std::placeholders::_1) );
+
+  // LaserScan 구독 (EKF 업데이트 입력)
+>>>>>>> Stashed changes
   scan_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
     "scan", 10, std::bind(&SlamNode::scanCallback, this, std::placeholders::_1));
 
-  // ackermann 구독 (EKF 예측 입력)
-  ackermann_sub_ = this->create_subscription<ackermann_msgs::msg::AckermannDriveStamped>(
-    "ackermann_cmd", 10, std::bind(&SlamNode::ackermannCallback, this, std::placeholders::_1) );
+  occupancy_mapper_->startMapping();
 
   // 맵 퍼블리셔 초기화
   map_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>("map", 10);
