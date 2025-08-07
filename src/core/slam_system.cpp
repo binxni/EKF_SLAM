@@ -35,6 +35,17 @@ void EkfSlamSystem::predict(double v, double delta, double dt) {
     mu_(1) += v * std::sin(theta) * dt;
   }
   mu_(2) = utils::normalizeAngle(theta + w * dt);
+  double theta = mu_(2); // 현재 heading
+
+  // 상태 변화량 계산
+  double dx = v * std::cos(theta) * dt;
+  double dy = v * std::sin(theta) * dt;
+  double dtheta = (v / wheel_base_) * std::tan(delta) * dt;
+
+  mu_(0) += dx;
+  mu_(1) += dy;
+  mu_(2) += dtheta;
+  mu_(2) = utils::normalizeAngle(mu_(2));
 
   // 자코비안 계산 (Gx)
   Eigen::Matrix3d Gx =
