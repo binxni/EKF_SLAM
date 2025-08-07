@@ -13,12 +13,12 @@ namespace ekf_slam {
 
 class EkfSlamSystem {
 public:
-  EkfSlamSystem(double wheel_base, double noise_x, double noise_y,
+  EkfSlamSystem(double noise_x, double noise_y,
                 double noise_theta, double meas_range_noise,
                 double meas_bearing_noise, double data_association_thresh);
 
-  // 예측: 제어입력 (선속도, 조향각), 시간 간격
-  void predict(double v, double delta, double dt);
+  // 예측: 제어입력 (선속도, 각속도), 시간 간격
+  void predict(double v, double w, double dt);
 
   // 업데이트: 관측값 (range-bearing)
   void update(const std::vector<laser::Observation> &observations);
@@ -43,7 +43,6 @@ private:
   Eigen::SparseMatrix<double> info_matrix_;
   Eigen::VectorXd info_vector_;
 
-  double wheel_base_;
   double noise_x_, noise_y_, noise_theta_; // control noise
   double meas_range_noise_, meas_bearing_noise_;
 

@@ -32,8 +32,7 @@ def generate_launch_description():
         remappings=[
             ('scan', '/scan'),
             ('odom', '/odom'),
-            ('map', '/ekf_slam/map'),
-            ('ackermann_cmd', '/ackermann_cmd')
+            ('map', '/ekf_slam/map')
         ]
     )
 

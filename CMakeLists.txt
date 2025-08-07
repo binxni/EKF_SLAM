@@ -15,7 +15,6 @@ find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
-find_package(ackermann_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
@@ -43,7 +42,6 @@ ament_target_dependencies(${PROJECT_NAME}_lib
   tf2_ros
   tf2_geometry_msgs
   Eigen3
-  ackermann_msgs 
 )
 
 # slam node Executables
@@ -62,7 +60,6 @@ ament_target_dependencies(slam_node
   tf2_ros
   tf2_geometry_msgs
   Eigen3
-  ackermann_msgs 
 )
 target_link_libraries(slam_node ${PROJECT_NAME}_lib)
 
@@ -128,7 +125,6 @@ ament_export_dependencies(
   tf2_ros
   tf2_geometry_msgs
   Eigen3
-  ackermann_msgs
 )
 
 ament_package()

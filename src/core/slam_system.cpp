@@ -6,10 +6,10 @@
 #include <cmath>
 
 namespace ekf_slam {
-EkfSlamSystem::EkfSlamSystem(double wheel_base, double noise_x, double noise_y,
+EkfSlamSystem::EkfSlamSystem(double noise_x, double noise_y,
                              double noise_theta, double meas_range_noise,
                              double meas_bearing_noise, double assoc_thresh)
-    : wheel_base_(wheel_base), noise_x_(noise_x), noise_y_(noise_y),
+    : noise_x_(noise_x), noise_y_(noise_y),
       noise_theta_(noise_theta), meas_range_noise_(meas_range_noise),
       meas_bearing_noise_(meas_bearing_noise), data_associator_(assoc_thresh),
       next_landmark_id_(0) {
@@ -22,9 +22,8 @@ EkfSlamSystem::EkfSlamSystem(double wheel_base, double noise_x, double noise_y,
 // -----------------------------
 // 1. Predict
 // -----------------------------
-void EkfSlamSystem::predict(double v, double delta, double dt) {
+void EkfSlamSystem::predict(double v, double w, double dt) {
   double theta = mu_(2);
-  double w = (v / wheel_base_) * std::tan(delta);
 
   // Integrate the bicycle model exactly for better turning behaviour
   if (std::fabs(w) > 1e-6) {

@@ -8,7 +8,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
 #include "nav_msgs/msg/occupancy_grid.hpp"
-#include "ackermann_msgs/msg/ackermann_drive_stamped.hpp"
+#include "nav_msgs/msg/odometry.hpp"
 
 #include "visualization/trajectory_visualizer.hpp"
 
@@ -34,7 +34,6 @@ public:
 private:
 
   double noise_x_, noise_y_, noise_theta_;
-  double wheel_base_;
   double meas_range_noise_, meas_bearing_noise_;
   double assoc_thresh_;
   int scan_downsample_;
@@ -44,8 +43,8 @@ private:
   // LaserScan 수신 콜백
   void scanCallback(const sensor_msgs::msg::LaserScan::SharedPtr msg);
 
-  // ackermann_cmd 수신 콜백 (predict용)
-  void ackermannCallback(const ackermann_msgs::msg::AckermannDriveStamped::SharedPtr msg);
+  // odom 수신 콜백 (predict용)
+  void odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
 
   // Occupancy map publish 함수
   void publishMap();
@@ -61,7 +60,7 @@ private:
 
   // ROS2 Subscriber
   rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_sub_;
-  rclcpp::Subscription<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr ackermann_sub_;
+  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
 
   // ROS2 Publisher for map
   rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr map_pub_;

@@ -1,6 +1,5 @@
 ekf_slam:
   ros__parameters:
-    wheel_base: 0.33
     control_noise:
       x: 0.01
       y: 0.01
