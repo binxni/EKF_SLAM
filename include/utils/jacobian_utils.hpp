@@ -3,14 +3,25 @@
 
 #include <Eigen/Dense>
 #include <cmath>
-namespace ekf_slam::utils
-{
+namespace ekf_slam::utils {
 
-Eigen::Matrix3d computeMotionJacobian(double v, double theta, double dt)
-{
+/**
+ * @brief Motion model Jacobian with respect to the robot pose.
+ *
+ * Uses a bicycle/unicycle model where angular velocity `w` is applied over
+ * the time step `dt`. When `w` is close to zero, the Jacobian reduces to the
+ * standard straight-line form.
+ */
+inline Eigen::Matrix3d computeMotionJacobian(double v, double theta, double w,
+                                             double dt) {
   Eigen::Matrix3d Gx = Eigen::Matrix3d::Identity();
-  Gx(0, 2) = -v * std::sin(theta) * dt;
-  Gx(1, 2) =  v * std::cos(theta) * dt;
+  if (std::fabs(w) < 1e-6) {
+    Gx(0, 2) = -v * std::sin(theta) * dt;
+    Gx(1, 2) = v * std::cos(theta) * dt;
+  } else {
+    Gx(0, 2) = v / w * (std::cos(theta + w * dt) - std::cos(theta));
+    Gx(1, 2) = v / w * (std::sin(theta + w * dt) - std::sin(theta));
+  }
   return Gx;
 }
 
