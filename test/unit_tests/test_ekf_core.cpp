@@ -3,7 +3,7 @@
 
 TEST(EkfSlamSystemTest, Initialization)
 {
-  ekf_slam::EkfSlamSystem slam(0.3, 0.01, 0.01, 0.01, 0.5, 0.1, 2.0);
+  ekf_slam::EkfSlamSystem slam(0.01, 0.01, 0.01, 0.5, 0.1, 2.0);
   Eigen::Vector3d pose = slam.getCurrentPose();
   EXPECT_NEAR(pose(0), 0.0, 1e-6);
   EXPECT_NEAR(pose(1), 0.0, 1e-6);
@@ -12,9 +12,9 @@ TEST(EkfSlamSystemTest, Initialization)
 
 TEST(EkfSlamSystemTest, PredictMotion)
 {
-  ekf_slam::EkfSlamSystem slam(0.5, 0.01, 0.01, 0.01, 0.5, 0.1, 2.0);
-  
-  // v = 1.0 m/s, delta = 0.0 rad, dt = 1.0 s → 직선 전진
+  ekf_slam::EkfSlamSystem slam(0.01, 0.01, 0.01, 0.5, 0.1, 2.0);
+
+  // v = 1.0 m/s, w = 0.0 rad/s, dt = 1.0 s → 직선 전진
   slam.predict(1.0, 0.0, 1.0);
 
   Eigen::Vector3d pose = slam.getCurrentPose();
@@ -25,7 +25,7 @@ TEST(EkfSlamSystemTest, PredictMotion)
 
 TEST(EkfSlamSystemTest, LandmarkUpdate)
 {
-  ekf_slam::EkfSlamSystem slam(0.5, 0.01, 0.01, 0.01, 0.5, 0.1, 2.0);
+  ekf_slam::EkfSlamSystem slam(0.01, 0.01, 0.01, 0.5, 0.1, 2.0);
 
   // 관측된 landmark 하나 추가
   ekf_slam::laser::Observation obs;

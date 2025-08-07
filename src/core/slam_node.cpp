@@ -18,7 +18,6 @@ SlamNode::SlamNode() : Node("ekf_slam_node")
   this->declare_parameter("control_noise.x", 0.01);
   this->declare_parameter("control_noise.y", 0.01);
   this->declare_parameter("control_noise.theta", 0.01);
-  this->declare_parameter("wheel_base", 0.33);
   this->declare_parameter("measurement_noise.range", 0.05);
   this->declare_parameter("measurement_noise.bearing", 0.05);
   this->declare_parameter("data_association.threshold", 5.99);
@@ -31,7 +30,6 @@ SlamNode::SlamNode() : Node("ekf_slam_node")
   this->get_parameter("control_noise.x", noise_x_);
   this->get_parameter("control_noise.y", noise_y_);
   this->get_parameter("control_noise.theta", noise_theta_);
-  this->get_parameter("wheel_base", wheel_base_);
   this->get_parameter("measurement_noise.range", meas_range_noise_);
   this->get_parameter("measurement_noise.bearing", meas_bearing_noise_);
   this->get_parameter("data_association.threshold", assoc_thresh_);
@@ -42,7 +40,7 @@ SlamNode::SlamNode() : Node("ekf_slam_node")
 
   // EKF SLAM 시스템 생성시 멤버 변수 사용
   ekf_ = std::make_shared<EkfSlamSystem>(
-    wheel_base_, noise_x_, noise_y_, noise_theta_,
+    noise_x_, noise_y_, noise_theta_,
     meas_range_noise_, meas_bearing_noise_, assoc_thresh_
   );
 
@@ -74,9 +72,9 @@ void SlamNode::initialize()
   // Initialize previous command time
   last_cmd_time_ = this->now();
 
-  // ackermann subscription (EKF predict input)
-  ackermann_sub_ = this->create_subscription<ackermann_msgs::msg::AckermannDriveStamped>(
-    "ackermann_cmd", 10, std::bind(&SlamNode::ackermannCallback, this, std::placeholders::_1));
+  // odom subscription (EKF predict input)
+  odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
+    "odom", 10, std::bind(&SlamNode::odomCallback, this, std::placeholders::_1));
 
   // LaserScan subscription (EKF update input)
   scan_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
@@ -99,10 +97,10 @@ SlamNode::~SlamNode()
     }
 }
 
-void SlamNode::ackermannCallback(const ackermann_msgs::msg::AckermannDriveStamped::SharedPtr msg)
+void SlamNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
 {
-  double v = msg->drive.speed;             // 선속도
-  double delta = msg->drive.steering_angle; // 조향각
+  double v = msg->twist.twist.linear.x;    // 선속도
+  double w = msg->twist.twist.angular.z;   // 각속도
 
   rclcpp::Time current_time = this->now();
   double dt = (current_time - last_cmd_time_).seconds();
@@ -110,7 +108,7 @@ void SlamNode::ackermannCallback(const ackermann_msgs::msg::AckermannDriveStampe
 
   if (dt <= 0.0 || dt > 1.0) return;  // 너무 큰 간격은 무시
 
-  ekf_->predict(v, delta, dt);             // EKF 예측 수행
+  ekf_->predict(v, w, dt);             // EKF 예측 수행
 }
 
 void SlamNode::scanCallback(const sensor_msgs::msg::LaserScan::SharedPtr msg)
