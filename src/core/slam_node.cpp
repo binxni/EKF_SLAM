@@ -5,6 +5,8 @@
 #include <tf2/utils.h>
 #include <memory>
 
+#include "utils/geometry_utils.hpp"
+
 namespace ekf_slam
 {
 
@@ -101,15 +103,15 @@ SlamNode::~SlamNode()
 void SlamNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
 {
   double v = msg->twist.twist.linear.x;    // 선속도
-  double w = msg->twist.twist.angular.z;   // 각속도
+  double yaw = tf2::getYaw(msg->pose.pose.orientation);
 
   rclcpp::Time current_time = msg->header.stamp;
 
   if (!initial_pose_received_) {
-    double yaw = tf2::getYaw(msg->pose.pose.orientation);
     ekf_->setPose(msg->pose.pose.position.x, msg->pose.pose.position.y, yaw);
     initial_pose_received_ = true;
     last_cmd_time_ = current_time;
+    last_yaw_ = yaw;
     return;
   }
 
@@ -117,6 +119,9 @@ void SlamNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
   last_cmd_time_ = current_time;
 
   if (dt <= 0.0 || dt > 1.0) return;  // 너무 큰 간격은 무시
+
+  double w = ekf_slam::utils::normalizeAngle(yaw - last_yaw_) / dt;
+  last_yaw_ = yaw;
 
   ekf_->predict(v, w, dt);             // EKF 예측 수행
 }

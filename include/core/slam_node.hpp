@@ -74,6 +74,9 @@ private:
   // 이전 시간 저장 (dt 계산용)
   rclcpp::Time last_cmd_time_;
 
+  // 이전 yaw 저장 (angular velocity 계산용)
+  double last_yaw_ = 0.0;
+
   // 초기 pose 수신 여부
   bool initial_pose_received_ = false;
 
