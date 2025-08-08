@@ -23,6 +23,9 @@ public:
   // 업데이트: 관측값 (range-bearing)
   void update(const std::vector<laser::Observation> &observations);
 
+  // 로봇 초기 pose 설정
+  void setPose(double x, double y, double theta);
+
   // 랜드마크 추가
   void addLandmark(const laser::Observation &obs, int landmark_id);
 

@@ -45,3 +45,13 @@ TEST(EkfSlamSystemTest, LandmarkUpdate)
   // landmark가 존재해야 한다
   EXPECT_TRUE(slam.hasLandmark(0));  // 첫 번째 landmark ID는 0일 가능성 높음
 }
+
+TEST(EkfSlamSystemTest, SetInitialPose)
+{
+  ekf_slam::EkfSlamSystem slam(0.01, 0.01, 0.01, 0.5, 0.1, 2.0);
+  slam.setPose(0.5, -1.0, 1.57);
+  Eigen::Vector3d pose = slam.getCurrentPose();
+  EXPECT_NEAR(pose(0), 0.5, 1e-6);
+  EXPECT_NEAR(pose(1), -1.0, 1e-6);
+  EXPECT_NEAR(pose(2), 1.57, 1e-6);
+}

@@ -2,6 +2,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
 
+#include <tf2/utils.h>
 #include <memory>
 
 namespace ekf_slam
@@ -69,8 +70,8 @@ void SlamNode::initialize()
   occupancy_mapper_->startMapping();
   RCLCPP_INFO(this->get_logger(), "Occupancy Mapping started.");
 
-  // Initialize previous command time
-  last_cmd_time_ = this->now();
+  // Initialize previous command time (use message timestamps)
+  last_cmd_time_ = rclcpp::Time(0);
 
   // odom subscription (EKF predict input)
   odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
@@ -102,7 +103,16 @@ void SlamNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
   double v = msg->twist.twist.linear.x;    // 선속도
   double w = msg->twist.twist.angular.z;   // 각속도
 
-  rclcpp::Time current_time = this->now();
+  rclcpp::Time current_time = msg->header.stamp;
+
+  if (!initial_pose_received_) {
+    double yaw = tf2::getYaw(msg->pose.pose.orientation);
+    ekf_->setPose(msg->pose.pose.position.x, msg->pose.pose.position.y, yaw);
+    initial_pose_received_ = true;
+    last_cmd_time_ = current_time;
+    return;
+  }
+
   double dt = (current_time - last_cmd_time_).seconds();
   last_cmd_time_ = current_time;
 
