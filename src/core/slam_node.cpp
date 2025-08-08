@@ -4,6 +4,7 @@
 
 #include <tf2/utils.h>
 #include <memory>
+#include <cmath>
 
 #include "utils/geometry_utils.hpp"
 
@@ -120,8 +121,17 @@ void SlamNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
 
   if (dt <= 0.0 || dt > 1.0) return;  // 너무 큰 간격은 무시
 
-  double w = ekf_slam::utils::normalizeAngle(yaw - last_yaw_) / dt;
+  // 우선적으로 odom에서 제공하는 각속도 사용
+  double w = msg->twist.twist.angular.z;
+  if (std::isnan(w) || std::fabs(w) < 1e-6) {
+    w = ekf_slam::utils::normalizeAngle(yaw - last_yaw_) / dt;
+  }
   last_yaw_ = yaw;
+
+  // 저속 구간에서는 노이즈를 줄이기 위해 각속도 제한
+  if (std::fabs(v) < 0.01 && std::fabs(w) < 0.01) {
+    w = 0.0;
+  }
 
   ekf_->predict(v, w, dt);             // EKF 예측 수행
 }
