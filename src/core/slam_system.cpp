@@ -19,6 +19,13 @@ EkfSlamSystem::EkfSlamSystem(double noise_x, double noise_y,
   info_vector_ = info_matrix_ * mu_;
 }
 
+void EkfSlamSystem::setPose(double x, double y, double theta) {
+  mu_(0) = x;
+  mu_(1) = y;
+  mu_(2) = utils::normalizeAngle(theta);
+  info_vector_ = info_matrix_ * mu_;
+}
+
 // -----------------------------
 // 1. Predict
 // -----------------------------

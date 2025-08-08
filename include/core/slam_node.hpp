@@ -74,6 +74,9 @@ private:
   // 이전 시간 저장 (dt 계산용)
   rclcpp::Time last_cmd_time_;
 
+  // 초기 pose 수신 여부
+  bool initial_pose_received_ = false;
+
   // TF 처리
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
