@@ -187,7 +187,9 @@ void SlamNode::scanCallback(const sensor_msgs::msg::LaserScan::SharedPtr msg) {
             << "\n";
 
   // EKF SLAM 업데이트
-  ekf_->update(observations);
+  double timestamp = msg->header.stamp.sec +
+                     msg->header.stamp.nanosec * 1e-9;
+  ekf_->update(observations, timestamp);
 
   // Update 이후 상태 기록 및 현재 추정 출력
   auto pose = ekf_->getCurrentPose();

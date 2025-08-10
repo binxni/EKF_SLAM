@@ -17,12 +17,15 @@ public:
     DataAssociation(double mahalanobis_thresh);
 
     // 관측값에 대해 연관된 landmark_id 반환 (-1이면 신규)
+    // innovation_out: z_obs - z_pred, mahalanobis_out: Mahalanobis distance
     int associate(
         const laser::Observation& obs,
         const Eigen::VectorXd& mu,
         const Eigen::MatrixXd& sigma,
         const std::unordered_map<int, int>& landmark_index_map,
-        const Eigen::Matrix2d& Q); // 측정 노이즈 공분산
+        const Eigen::Matrix2d& Q,
+        Eigen::Vector2d& innovation_out,
+        double& mahalanobis_out); // 측정 노이즈 공분산
 
 private:
     double threshold_;  // 마할라노비스 거리 임계값
