@@ -1,17 +1,19 @@
 #include "core/slam_system.hpp"
 #include "association/data_association.hpp"
+#include "rclcpp/rclcpp.hpp"
 #include "utils/geometry_utils.hpp"
 #include "utils/jacobian_utils.hpp"
 #include <Eigen/SparseCholesky>
 #include <cmath>
 #include <utility>
+#include <sstream>
 
 namespace ekf_slam {
-EkfSlamSystem::EkfSlamSystem(double noise_x, double noise_y,
-                             double noise_theta, double meas_range_noise,
-                             double meas_bearing_noise, double assoc_thresh)
-    : noise_x_(noise_x), noise_y_(noise_y),
-      noise_theta_(noise_theta), meas_range_noise_(meas_range_noise),
+EkfSlamSystem::EkfSlamSystem(double noise_x, double noise_y, double noise_theta,
+                             double meas_range_noise, double meas_bearing_noise,
+                             double assoc_thresh)
+    : noise_x_(noise_x), noise_y_(noise_y), noise_theta_(noise_theta),
+      meas_range_noise_(meas_range_noise),
       meas_bearing_noise_(meas_bearing_noise), data_associator_(assoc_thresh),
       next_landmark_id_(0) {
   mu_ = Eigen::VectorXd::Zero(3);
@@ -50,8 +52,7 @@ void EkfSlamSystem::predict(double v, double w, double dt) {
   mu_(2) = utils::normalizeAngle(theta + w * dt);
 
   // 자코비안 계산 (Gx)
-  Eigen::Matrix3d Gx =
-      ekf_slam::utils::computeMotionJacobian(v, theta, w, dt);
+  Eigen::Matrix3d Gx = ekf_slam::utils::computeMotionJacobian(v, theta, w, dt);
 
   // 제어 노이즈
   Eigen::Matrix3d R = Eigen::Matrix3d::Zero();
@@ -81,6 +82,9 @@ void EkfSlamSystem::update(
   std::vector<std::pair<Eigen::Vector2d, double>> log_entries;
   log_entries.reserve(observations.size());
 
+    const std::vector<ekf_slam::laser::Observation> &observations) {
+  auto logger = rclcpp::get_logger("EkfSlamSystem");
+
   for (const auto &obs : observations) {
     Eigen::Matrix2d Q = getMeasurementNoiseMatrix();
     Eigen::Vector2d innovation;
@@ -88,6 +92,8 @@ void EkfSlamSystem::update(
     int id = data_associator_.associate(obs, mu_, sigma_, landmark_index_map_, Q,
                                         innovation, mahal_dist);
     if (id == -1) {
+      RCLCPP_DEBUG(logger, "No association found. Adding new landmark id %d",
+                   next_landmark_id_);
       id = next_landmark_id_++;
       addLandmark(obs, id);
       continue;
@@ -111,6 +117,23 @@ void EkfSlamSystem::update(
     innovation_update(1) = utils::normalizeAngle(innovation_update(1));
 
     Eigen::MatrixXd H = ekf_slam::utils::computeObservationJacobian(mu_, idx);
+    Eigen::Matrix2d S = H * sigma_ * H.transpose() + Q;
+    double mahalanobis = innovation.transpose() * S.inverse() * innovation;
+    RCLCPP_DEBUG(logger,
+                 "Association result -> id: %d, Mahalanobis distance: %.3f", id,
+                 mahalanobis);
+
+    double range_thresh = 3.0 * std::sqrt(Q(0, 0));
+    double bearing_thresh = 3.0 * std::sqrt(Q(1, 1));
+    if (std::abs(innovation(0)) > range_thresh ||
+        std::abs(innovation(1)) > bearing_thresh) {
+      RCLCPP_WARN(logger,
+                  "Innovation exceeds threshold: range %.3f, bearing %.3f",
+                  innovation(0), innovation(1));
+    }
+    RCLCPP_DEBUG(logger, "Innovation: [%.3f, %.3f]", innovation(0),
+                 innovation(1));
+
     Eigen::Matrix2d Q_inv = Q.inverse();
     Eigen::MatrixXd Ht_Qinv = H.transpose() * Q_inv;
 
@@ -118,6 +141,16 @@ void EkfSlamSystem::update(
     info_vector_ += Ht_Qinv * (innovation_update + H * mu_);
 
     log_entries.emplace_back(innovation, mahal_dist);
+    info_vector_ += Ht_Qinv * (innovation + H * mu_);
+
+    Eigen::MatrixXd info_dense(info_matrix_);
+    std::stringstream ss_info;
+    ss_info << info_dense;
+    RCLCPP_DEBUG(logger, "info_matrix_:\n%s", ss_info.str().c_str());
+
+    std::stringstream ss_mu;
+    ss_mu << mu_.transpose();
+    RCLCPP_DEBUG(logger, "mu_: %s", ss_mu.str().c_str());
   }
 
   sparsifyInformationMatrix(1e-6);
@@ -190,6 +223,8 @@ Eigen::Vector3d EkfSlamSystem::getCurrentPose() const {
   pose(2) = utils::normalizeAngle(pose(2));
   return pose;
 }
+
+const Eigen::MatrixXd &EkfSlamSystem::getCovariance() const { return sigma_; }
 
 void EkfSlamSystem::expandCovarianceWithLandmark(int old_size, double range,
                                                  double bearing, double theta,
