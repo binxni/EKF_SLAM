@@ -13,9 +13,13 @@ int DataAssociation::associate(
     const laser::Observation &obs, const Eigen::VectorXd &mu,
     const Eigen::MatrixXd &sigma,
     const std::unordered_map<int, int> &landmark_index_map,
-    const Eigen::Matrix2d &Q) {
+    const Eigen::Matrix2d &Q,
+    Eigen::Vector2d &innovation_out,
+    double &mahalanobis_out) {
   double min_dist = threshold_;
   int matched_id = -1;
+  Eigen::Vector2d best_innovation = Eigen::Vector2d::Zero();
+  double best_dist = std::numeric_limits<double>::infinity();
 
   for (const auto &[landmark_id, idx] : landmark_index_map) {
     double lx = mu(idx);
@@ -53,9 +57,13 @@ int DataAssociation::associate(
     if (dist < min_dist) {
       min_dist = dist;
       matched_id = landmark_id;
+      best_innovation = innovation;
+      best_dist = dist;
     }
   }
 
+  innovation_out = best_innovation;
+  mahalanobis_out = best_dist;
   return matched_id;
 }
 

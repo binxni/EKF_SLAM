@@ -5,6 +5,7 @@
 #include <Eigen/Sparse>
 #include <unordered_map>
 #include <vector>
+#include <fstream>
 
 #include "preprocessing/laser_processor.hpp"
 #include "association/data_association.hpp"
@@ -20,8 +21,9 @@ public:
   // 예측: 제어입력 (선속도, 각속도), 시간 간격
   void predict(double v, double w, double dt);
 
-  // 업데이트: 관측값 (range-bearing)
-  void update(const std::vector<laser::Observation> &observations);
+  // 업데이트: 관측값 (range-bearing)과 현재 시간(초)
+  void update(const std::vector<laser::Observation> &observations,
+              double timestamp);
 
   // 로봇 초기 pose 설정
   void setPose(double x, double y, double theta);
@@ -54,6 +56,9 @@ private:
 
   ekf_slam::DataAssociation data_associator_;
   int next_landmark_id_;
+
+  // 로그 파일 스트림
+  std::ofstream log_stream_;
 
   // 상태 확장 함수
   void extendState(int landmark_id, const laser::Observation &obs);

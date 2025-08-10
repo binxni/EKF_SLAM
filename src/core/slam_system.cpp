@@ -4,6 +4,7 @@
 #include "utils/jacobian_utils.hpp"
 #include <Eigen/SparseCholesky>
 #include <cmath>
+#include <utility>
 
 namespace ekf_slam {
 EkfSlamSystem::EkfSlamSystem(double noise_x, double noise_y,
@@ -17,6 +18,12 @@ EkfSlamSystem::EkfSlamSystem(double noise_x, double noise_y,
   sigma_ = Eigen::MatrixXd::Identity(3, 3) * 1e-3;
   info_matrix_ = sigma_.inverse().sparseView();
   info_vector_ = info_matrix_ * mu_;
+
+  // 로그 파일 초기화
+  log_stream_.open("slam_log.csv");
+  if (log_stream_.is_open()) {
+    log_stream_ << "time,x,y,theta,innovation_range,innovation_bearing,mahalanobis\n";
+  }
 }
 
 void EkfSlamSystem::setPose(double x, double y, double theta) {
@@ -69,11 +76,17 @@ void EkfSlamSystem::predict(double v, double w, double dt) {
 // 2. Update
 // -----------------------------
 void EkfSlamSystem::update(
-    const std::vector<ekf_slam::laser::Observation> &observations) {
+    const std::vector<ekf_slam::laser::Observation> &observations,
+    double timestamp) {
+  std::vector<std::pair<Eigen::Vector2d, double>> log_entries;
+  log_entries.reserve(observations.size());
+
   for (const auto &obs : observations) {
     Eigen::Matrix2d Q = getMeasurementNoiseMatrix();
-    int id =
-        data_associator_.associate(obs, mu_, sigma_, landmark_index_map_, Q);
+    Eigen::Vector2d innovation;
+    double mahal_dist;
+    int id = data_associator_.associate(obs, mu_, sigma_, landmark_index_map_, Q,
+                                        innovation, mahal_dist);
     if (id == -1) {
       id = next_landmark_id_++;
       addLandmark(obs, id);
@@ -94,15 +107,17 @@ void EkfSlamSystem::update(
     double measured_bearing = utils::normalizeAngle(obs.bearing);
     Eigen::Vector2d z_hat(z_hat_range, z_hat_bearing_norm);
     Eigen::Vector2d z(obs.range, measured_bearing);
-    Eigen::Vector2d innovation = z - z_hat;
-    innovation(1) = utils::normalizeAngle(innovation(1));
+    Eigen::Vector2d innovation_update = z - z_hat;
+    innovation_update(1) = utils::normalizeAngle(innovation_update(1));
 
     Eigen::MatrixXd H = ekf_slam::utils::computeObservationJacobian(mu_, idx);
     Eigen::Matrix2d Q_inv = Q.inverse();
     Eigen::MatrixXd Ht_Qinv = H.transpose() * Q_inv;
 
     info_matrix_ += (Ht_Qinv * H).sparseView();
-    info_vector_ += Ht_Qinv * (innovation + H * mu_);
+    info_vector_ += Ht_Qinv * (innovation_update + H * mu_);
+
+    log_entries.emplace_back(innovation, mahal_dist);
   }
 
   sparsifyInformationMatrix(1e-6);
@@ -112,6 +127,15 @@ void EkfSlamSystem::update(
   sigma_ = solver.solve(
       Eigen::MatrixXd::Identity(info_matrix_.rows(), info_matrix_.cols()));
   info_vector_ = info_matrix_ * mu_;
+
+  Eigen::Vector3d pose = getCurrentPose();
+  if (log_stream_.is_open()) {
+    for (const auto &entry : log_entries) {
+      log_stream_ << timestamp << "," << pose(0) << "," << pose(1) << ","
+                  << pose(2) << "," << entry.first(0) << "," << entry.first(1)
+                  << "," << entry.second << "\n";
+    }
+  }
 }
 
 // -----------------------------
