@@ -1,29 +1,27 @@
 #ifndef EKF_SLAM_NODE_HPP_
 #define EKF_SLAM_NODE_HPP_
 
+#include <fstream>
 #include <memory>
 #include <string>
 
-
-#include "rclcpp/rclcpp.hpp"
-#include "sensor_msgs/msg/laser_scan.hpp"
 #include "nav_msgs/msg/occupancy_grid.hpp"
 #include "nav_msgs/msg/odometry.hpp"
+#include "rclcpp/rclcpp.hpp"
+#include "sensor_msgs/msg/laser_scan.hpp"
 
 #include "visualization/trajectory_visualizer.hpp"
 
-#include "tf2_ros/transform_listener.h"
 #include "tf2_ros/buffer.h"
+#include "tf2_ros/transform_listener.h"
 
-#include "preprocessing/laser_processor.hpp"
 #include "core/slam_system.hpp"
 #include "mapping/occupancy_mapper.hpp"
+#include "preprocessing/laser_processor.hpp"
 
-namespace ekf_slam
-{
+namespace ekf_slam {
 
-class SlamNode : public rclcpp::Node
-{
+class SlamNode : public rclcpp::Node {
 public:
   SlamNode();
   ~SlamNode();
@@ -32,14 +30,13 @@ public:
   void initialize();
 
 private:
-
   double noise_x_, noise_y_, noise_theta_;
   double meas_range_noise_, meas_bearing_noise_;
   double assoc_thresh_;
   int scan_downsample_;
   int map_width_, map_height_;
   double resolution_;
-  
+
   // LaserScan 수신 콜백
   void scanCallback(const sensor_msgs::msg::LaserScan::SharedPtr msg);
 
@@ -83,8 +80,11 @@ private:
   // TF 처리
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
+
+  // Logging 파일
+  std::ofstream log_file_;
 };
 
-}  // namespace ekf_slam
+} // namespace ekf_slam
 
-#endif  // EKF_SLAM_NODE_HPP_
+#endif // EKF_SLAM_NODE_HPP_

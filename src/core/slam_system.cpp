@@ -6,11 +6,11 @@
 #include <cmath>
 
 namespace ekf_slam {
-EkfSlamSystem::EkfSlamSystem(double noise_x, double noise_y,
-                             double noise_theta, double meas_range_noise,
-                             double meas_bearing_noise, double assoc_thresh)
-    : noise_x_(noise_x), noise_y_(noise_y),
-      noise_theta_(noise_theta), meas_range_noise_(meas_range_noise),
+EkfSlamSystem::EkfSlamSystem(double noise_x, double noise_y, double noise_theta,
+                             double meas_range_noise, double meas_bearing_noise,
+                             double assoc_thresh)
+    : noise_x_(noise_x), noise_y_(noise_y), noise_theta_(noise_theta),
+      meas_range_noise_(meas_range_noise),
       meas_bearing_noise_(meas_bearing_noise), data_associator_(assoc_thresh),
       next_landmark_id_(0) {
   mu_ = Eigen::VectorXd::Zero(3);
@@ -43,8 +43,7 @@ void EkfSlamSystem::predict(double v, double w, double dt) {
   mu_(2) = utils::normalizeAngle(theta + w * dt);
 
   // 자코비안 계산 (Gx)
-  Eigen::Matrix3d Gx =
-      ekf_slam::utils::computeMotionJacobian(v, theta, w, dt);
+  Eigen::Matrix3d Gx = ekf_slam::utils::computeMotionJacobian(v, theta, w, dt);
 
   // 제어 노이즈
   Eigen::Matrix3d R = Eigen::Matrix3d::Zero();
@@ -166,6 +165,8 @@ Eigen::Vector3d EkfSlamSystem::getCurrentPose() const {
   pose(2) = utils::normalizeAngle(pose(2));
   return pose;
 }
+
+const Eigen::MatrixXd &EkfSlamSystem::getCovariance() const { return sigma_; }
 
 void EkfSlamSystem::expandCovarianceWithLandmark(int old_size, double range,
                                                  double bearing, double theta,

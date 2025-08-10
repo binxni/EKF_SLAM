@@ -2,17 +2,25 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
 
-#include <tf2/utils.h>
-#include <memory>
 #include <cmath>
+#include <iomanip>
+#include <memory>
+#include <tf2/utils.h>
 
 #include "utils/geometry_utils.hpp"
 
-namespace ekf_slam
-{
+namespace ekf_slam {
 
-SlamNode::SlamNode() : Node("ekf_slam_node")
-{
+SlamNode::SlamNode() : Node("ekf_slam_node") {
+  // Log 파일 초기화
+  log_file_.open("log/ekf_log.csv", std::ios::out | std::ios::app);
+  if (log_file_.tellp() == 0) {
+    log_file_ << "timestamp,stage,pose_x,pose_y,pose_theta,";
+    log_file_
+        << "cov_00,cov_01,cov_02,cov_10,cov_11,cov_12,cov_20,cov_21,cov_22\n";
+  }
+  log_file_ << std::fixed << std::setprecision(6);
+
   // TF2 초기화
   tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
@@ -43,30 +51,29 @@ SlamNode::SlamNode() : Node("ekf_slam_node")
   this->get_parameter("map.resolution", resolution_);
 
   // EKF SLAM 시스템 생성시 멤버 변수 사용
-  ekf_ = std::make_shared<EkfSlamSystem>(
-    noise_x_, noise_y_, noise_theta_,
-    meas_range_noise_, meas_bearing_noise_, assoc_thresh_
-  );
+  ekf_ = std::make_shared<EkfSlamSystem>(noise_x_, noise_y_, noise_theta_,
+                                         meas_range_noise_, meas_bearing_noise_,
+                                         assoc_thresh_);
 
   RCLCPP_INFO(this->get_logger(), "EKF SLAM Node Initialized.");
 }
 
-void SlamNode::initialize()
-{
+void SlamNode::initialize() {
   // LaserScan 전처리기 초기화
   laser_processor_ = std::make_shared<laser::LaserProcessor>(
-    shared_from_this(), tf_buffer_.get(), "base_link", static_cast<std::size_t>(scan_downsample_));
-  
-  RCLCPP_INFO(this->get_logger(), "Laser Processor Initialized with downsample step: %d", scan_downsample_);
-  
+      shared_from_this(), tf_buffer_.get(), "base_link",
+      static_cast<std::size_t>(scan_downsample_));
+
+  RCLCPP_INFO(this->get_logger(),
+              "Laser Processor Initialized with downsample step: %d",
+              scan_downsample_);
+
   // Occupancy Mapper 초기화 추가
-  occupancy_mapper_ = std::make_shared<OccupancyMapper>(
-      shared_from_this(),  // 현재 노드 전달
-      map_width_,
-      map_height_,
-      resolution_
-  );
-  RCLCPP_INFO(this->get_logger(), "Occupancy Mapper Initialized with size: %dx%d, resolution: %.2f",
+  occupancy_mapper_ =
+      std::make_shared<OccupancyMapper>(shared_from_this(), // 현재 노드 전달
+                                        map_width_, map_height_, resolution_);
+  RCLCPP_INFO(this->get_logger(),
+              "Occupancy Mapper Initialized with size: %dx%d, resolution: %.2f",
               map_width_, map_height_, resolution_);
 
   // Start occupancy mapping
@@ -78,32 +85,37 @@ void SlamNode::initialize()
 
   // odom subscription (EKF predict input)
   odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-    "odom", 10, std::bind(&SlamNode::odomCallback, this, std::placeholders::_1));
+      "odom", 10,
+      std::bind(&SlamNode::odomCallback, this, std::placeholders::_1));
 
   // LaserScan subscription (EKF update input)
   scan_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
-    "scan", 10, std::bind(&SlamNode::scanCallback, this, std::placeholders::_1));
+      "scan", 10,
+      std::bind(&SlamNode::scanCallback, this, std::placeholders::_1));
 
   // Map publisher
   map_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>("map", 10);
 
   // Trajectory visualizer
-  trajectory_visualizer_ = std::make_shared<TrajectoryVisualizer>(shared_from_this());
+  trajectory_visualizer_ =
+      std::make_shared<TrajectoryVisualizer>(shared_from_this());
 
   // Periodic map publish timer (1 second interval)
-  map_timer_ = this->create_wall_timer(
-    std::chrono::seconds(1), std::bind(&SlamNode::publishMap, this));
+  map_timer_ = this->create_wall_timer(std::chrono::seconds(1),
+                                       std::bind(&SlamNode::publishMap, this));
 }
 
-SlamNode::~SlamNode()
-{   if (occupancy_mapper_) {
-      occupancy_mapper_->stopMapping();
-    }
+SlamNode::~SlamNode() {
+  if (occupancy_mapper_) {
+    occupancy_mapper_->stopMapping();
+  }
+  if (log_file_.is_open()) {
+    log_file_.close();
+  }
 }
 
-void SlamNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
-{
-  double v = msg->twist.twist.linear.x;    // 선속도
+void SlamNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg) {
+  double v = msg->twist.twist.linear.x; // 선속도
   double yaw = tf2::getYaw(msg->pose.pose.orientation);
 
   rclcpp::Time current_time = msg->header.stamp;
@@ -119,7 +131,8 @@ void SlamNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
   double dt = (current_time - last_cmd_time_).seconds();
   last_cmd_time_ = current_time;
 
-  if (dt <= 0.0 || dt > 1.0) return;  // 너무 큰 간격은 무시
+  if (dt <= 0.0 || dt > 1.0)
+    return; // 너무 큰 간격은 무시
 
   // 우선적으로 odom에서 제공하는 각속도 사용
   double w = msg->twist.twist.angular.z;
@@ -133,50 +146,87 @@ void SlamNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
     w = 0.0;
   }
 
-  ekf_->predict(v, w, dt);             // EKF 예측 수행
+  // Predict 이전 상태 기록
+  auto pre_pose = ekf_->getCurrentPose();
+  auto pre_cov = ekf_->getCovariance().block(0, 0, 3, 3);
+  log_file_ << current_time.seconds() << ",predict_before," << pre_pose(0)
+            << "," << pre_pose(1) << "," << pre_pose(2) << "," << pre_cov(0, 0)
+            << "," << pre_cov(0, 1) << "," << pre_cov(0, 2) << ","
+            << pre_cov(1, 0) << "," << pre_cov(1, 1) << "," << pre_cov(1, 2)
+            << "," << pre_cov(2, 0) << "," << pre_cov(2, 1) << ","
+            << pre_cov(2, 2) << "\n";
+
+  ekf_->predict(v, w, dt); // EKF 예측 수행
+
+  // Predict 이후 상태 기록
+  auto post_pose = ekf_->getCurrentPose();
+  auto post_cov = ekf_->getCovariance().block(0, 0, 3, 3);
+  log_file_ << current_time.seconds() << ",predict_after," << post_pose(0)
+            << "," << post_pose(1) << "," << post_pose(2) << ","
+            << post_cov(0, 0) << "," << post_cov(0, 1) << "," << post_cov(0, 2)
+            << "," << post_cov(1, 0) << "," << post_cov(1, 1) << ","
+            << post_cov(1, 2) << "," << post_cov(2, 0) << "," << post_cov(2, 1)
+            << "," << post_cov(2, 2) << "\n";
+  log_file_.flush();
 }
 
-void SlamNode::scanCallback(const sensor_msgs::msg::LaserScan::SharedPtr msg)
-{
+void SlamNode::scanCallback(const sensor_msgs::msg::LaserScan::SharedPtr msg) {
   // LaserScan → 관측값 변환
   auto observations = laser_processor_->process(*msg);
+
+  double time_sec = msg->header.stamp.seconds();
+
+  // Update 이전 상태 기록
+  auto pre_pose = ekf_->getCurrentPose();
+  auto pre_cov = ekf_->getCovariance().block(0, 0, 3, 3);
+  log_file_ << time_sec << ",update_before," << pre_pose(0) << ","
+            << pre_pose(1) << "," << pre_pose(2) << "," << pre_cov(0, 0) << ","
+            << pre_cov(0, 1) << "," << pre_cov(0, 2) << "," << pre_cov(1, 0)
+            << "," << pre_cov(1, 1) << "," << pre_cov(1, 2) << ","
+            << pre_cov(2, 0) << "," << pre_cov(2, 1) << "," << pre_cov(2, 2)
+            << "\n";
 
   // EKF SLAM 업데이트
   ekf_->update(observations);
 
-  // 현재 추정된 로봇 pose 출력
+  // Update 이후 상태 기록 및 현재 추정 출력
   auto pose = ekf_->getCurrentPose();
-  RCLCPP_INFO(this->get_logger(), "Pose: x=%.2f, y=%.2f, θ=%.2f",
-              pose(0), pose(1), pose(2));
+  auto post_cov = ekf_->getCovariance().block(0, 0, 3, 3);
+  log_file_ << time_sec << ",update_after," << pose(0) << "," << pose(1) << ","
+            << pose(2) << "," << post_cov(0, 0) << "," << post_cov(0, 1) << ","
+            << post_cov(0, 2) << "," << post_cov(1, 0) << "," << post_cov(1, 1)
+            << "," << post_cov(1, 2) << "," << post_cov(2, 0) << ","
+            << post_cov(2, 1) << "," << post_cov(2, 2) << "\n";
+  log_file_.flush();
+  RCLCPP_INFO(this->get_logger(), "Pose: x=%.2f, y=%.2f, θ=%.2f", pose(0),
+              pose(1), pose(2));
 
-  //occupancy mapping을 위한 데이터 전송
+  // occupancy mapping을 위한 데이터 전송
   occupancy_mapper_->addScanData(pose, *msg);
 
   // Update trajectory visualization
   if (trajectory_visualizer_) {
     trajectory_visualizer_->addPose(pose(0), pose(1), this->now());
   }
-
 }
 
 void SlamNode::publishMap() {
-    if (occupancy_mapper_ && occupancy_mapper_->isInitialized()) {
-        auto occupancy_grid = occupancy_mapper_->getOccupancyGrid();
-        map_pub_->publish(occupancy_grid);
-        
-        // 디버그 정보
-        static int map_count = 0;
-        if (++map_count % 10 == 0) {
-            RCLCPP_INFO(this->get_logger(), "Published occupancy map #%d", map_count);
-        }
+  if (occupancy_mapper_ && occupancy_mapper_->isInitialized()) {
+    auto occupancy_grid = occupancy_mapper_->getOccupancyGrid();
+    map_pub_->publish(occupancy_grid);
+
+    // 디버그 정보
+    static int map_count = 0;
+    if (++map_count % 10 == 0) {
+      RCLCPP_INFO(this->get_logger(), "Published occupancy map #%d", map_count);
     }
+  }
 }
 
-}  // namespace ekf_slam
+} // namespace ekf_slam
 
 // main
-int main(int argc, char** argv)
-{
+int main(int argc, char **argv) {
   rclcpp::init(argc, argv);
   auto node = std::make_shared<ekf_slam::SlamNode>();
   node->initialize();

@@ -6,16 +6,16 @@
 #include <unordered_map>
 #include <vector>
 
-#include "preprocessing/laser_processor.hpp"
 #include "association/data_association.hpp"
+#include "preprocessing/laser_processor.hpp"
 
 namespace ekf_slam {
 
 class EkfSlamSystem {
 public:
-  EkfSlamSystem(double noise_x, double noise_y,
-                double noise_theta, double meas_range_noise,
-                double meas_bearing_noise, double data_association_thresh);
+  EkfSlamSystem(double noise_x, double noise_y, double noise_theta,
+                double meas_range_noise, double meas_bearing_noise,
+                double data_association_thresh);
 
   // 예측: 제어입력 (선속도, 각속도), 시간 간격
   void predict(double v, double w, double dt);
@@ -31,6 +31,9 @@ public:
 
   // 현재 로봇 위치 (x, y, theta)
   Eigen::Vector3d getCurrentPose() const;
+
+  // 현재 공분산 행렬 반환
+  const Eigen::MatrixXd &getCovariance() const;
 
   // 랜드마크가 이미 있는지 확인
   bool hasLandmark(int landmark_id) const;
