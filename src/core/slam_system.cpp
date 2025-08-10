@@ -76,14 +76,13 @@ void EkfSlamSystem::predict(double v, double w, double dt) {
 // -----------------------------
 // 2. Update
 // -----------------------------
-void EkfSlamSystem::update(
-    const std::vector<ekf_slam::laser::Observation> &observations,
-    double timestamp) {
-  std::vector<std::pair<Eigen::Vector2d, double>> log_entries;
-  log_entries.reserve(observations.size());
+  void EkfSlamSystem::update(
+      const std::vector<ekf_slam::laser::Observation> &observations,
+      double timestamp) {
+    std::vector<std::pair<Eigen::Vector2d, double>> log_entries;
+    log_entries.reserve(observations.size());
 
-    const std::vector<ekf_slam::laser::Observation> &observations) {
-  auto logger = rclcpp::get_logger("EkfSlamSystem");
+    auto logger = rclcpp::get_logger("EkfSlamSystem");
 
   for (const auto &obs : observations) {
     Eigen::Matrix2d Q = getMeasurementNoiseMatrix();
@@ -141,7 +140,6 @@ void EkfSlamSystem::update(
     info_vector_ += Ht_Qinv * (innovation_update + H * mu_);
 
     log_entries.emplace_back(innovation, mahal_dist);
-    info_vector_ += Ht_Qinv * (innovation + H * mu_);
 
     Eigen::MatrixXd info_dense(info_matrix_);
     std::stringstream ss_info;

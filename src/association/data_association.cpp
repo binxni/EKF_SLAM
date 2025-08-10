@@ -14,13 +14,8 @@ int DataAssociation::associate(
     const laser::Observation &obs, const Eigen::VectorXd &mu,
     const Eigen::MatrixXd &sigma,
     const std::unordered_map<int, int> &landmark_index_map,
-
-    const Eigen::Matrix2d &Q,
-    Eigen::Vector2d &innovation_out,
+    const Eigen::Matrix2d &Q, Eigen::Vector2d &innovation_out,
     double &mahalanobis_out) {
-  double min_dist = threshold_;
-
-    const Eigen::Matrix2d &Q) {
   double min_dist = std::numeric_limits<double>::infinity();
 
   int matched_id = -1;
