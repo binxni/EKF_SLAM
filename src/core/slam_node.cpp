@@ -75,8 +75,14 @@ void SlamNode::initialize()
   occupancy_mapper_->startMapping();
   RCLCPP_INFO(this->get_logger(), "Occupancy Mapping started.");
 
-  // Initialize previous command time (will be set from incoming odometry messages)
-  last_cmd_time_ = rclcpp::Time(0);
+  // Initialize previous command time using the node's clock type so that
+  // future time calculations are performed with a consistent time source.
+  // This prevents errors such as "can't subtract times with different
+  // time sources" when subtracting ROS time from system time.
+  // Disambiguate constructor by explicitly specifying seconds and
+  // nanoseconds to ensure the clock type is preserved.
+  last_cmd_time_ =
+    rclcpp::Time(0, 0, this->get_clock()->get_clock_type());
 
   // odom subscription (EKF predict input)
   odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
@@ -112,7 +118,9 @@ void SlamNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
   double steering =
       std::fabs(v) > 1e-6 ? std::atan(yaw_rate * wheel_base_ / v) : 0.0;
 
-  rclcpp::Time current_time = msg->header.stamp;
+  // Use the same clock type for both the incoming message timestamp and the
+  // stored previous timestamp to avoid mixing ROS and system time sources.
+  rclcpp::Time current_time(msg->header.stamp, this->get_clock()->get_clock_type());
   double dt = (current_time - last_cmd_time_).seconds();
   last_cmd_time_ = current_time;
 
