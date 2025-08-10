@@ -3,6 +3,7 @@
 #include "utils/geometry_utils.hpp"
 #include <cmath>
 #include <limits>
+#include <rclcpp/rclcpp.hpp>
 
 namespace ekf_slam {
 
@@ -14,7 +15,7 @@ int DataAssociation::associate(
     const Eigen::MatrixXd &sigma,
     const std::unordered_map<int, int> &landmark_index_map,
     const Eigen::Matrix2d &Q) {
-  double min_dist = threshold_;
+  double min_dist = std::numeric_limits<double>::infinity();
   int matched_id = -1;
 
   for (const auto &[landmark_id, idx] : landmark_index_map) {
@@ -50,10 +51,24 @@ int DataAssociation::associate(
     Eigen::Matrix2d S = H * Sigma_x * H.transpose() + Q;
 
     double dist = innovation.transpose() * S.inverse() * innovation;
+    RCLCPP_INFO(rclcpp::get_logger("DataAssociation"),
+                "Landmark %d: dist=%.4f, innovation=[%.4f, %.4f]",
+                landmark_id, dist, innovation(0), innovation(1));
     if (dist < min_dist) {
       min_dist = dist;
       matched_id = landmark_id;
     }
+  }
+
+  if (min_dist < threshold_) {
+    RCLCPP_INFO(rclcpp::get_logger("DataAssociation"),
+                "Matched landmark %d with distance %.4f",
+                matched_id, min_dist);
+  } else {
+    RCLCPP_WARN(rclcpp::get_logger("DataAssociation"),
+                "No landmark within gate. Min distance %.4f exceeds threshold %.4f",
+                min_dist, threshold_);
+    matched_id = -1;
   }
 
   return matched_id;
