@@ -28,7 +28,7 @@ def plot_trajectory(df: pd.DataFrame, out_dir: Path) -> None:
     if {"x", "y"} <= set(df.columns):
         out_dir.mkdir(parents=True, exist_ok=True)
         plt.figure()
-        plt.plot(df["x"], df["y"], label="trajectory")
+        plt.plot(df["x"].to_numpy(), df["y"].to_numpy(), label="trajectory")
         plt.xlabel("x")
         plt.ylabel("y")
         plt.title("SLAM Trajectory")
@@ -47,7 +47,7 @@ def plot_time_series(df: pd.DataFrame, columns: Iterable[str], out_dir: Path) ->
         if col not in df.columns:
             continue
         plt.figure()
-        plt.plot(df.index, df[col])
+        plt.plot(df.index.to_numpy(), df[col].to_numpy())
         plt.xlabel("index")
         plt.ylabel(col)
         plt.title(f"{col} over time")
