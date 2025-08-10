@@ -197,6 +197,8 @@ Eigen::Vector3d EkfSlamSystem::getCurrentPose() const {
   return pose;
 }
 
+const Eigen::MatrixXd &EkfSlamSystem::getCovariance() const { return sigma_; }
+
 void EkfSlamSystem::expandCovarianceWithLandmark(int old_size, double range,
                                                  double bearing, double theta,
                                                  double range_noise_var,
