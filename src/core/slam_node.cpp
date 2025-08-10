@@ -174,7 +174,7 @@ void SlamNode::scanCallback(const sensor_msgs::msg::LaserScan::SharedPtr msg) {
   // LaserScan → 관측값 변환
   auto observations = laser_processor_->process(*msg);
 
-  double time_sec = msg->header.stamp.seconds();
+  double time_sec = rclcpp::Time(msg->header.stamp).seconds();
 
   // Update 이전 상태 기록
   auto pre_pose = ekf_->getCurrentPose();
