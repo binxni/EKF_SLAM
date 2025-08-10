@@ -34,7 +34,7 @@ TEST(EkfSlamSystemTest, LandmarkUpdate)
 
   std::vector<ekf_slam::laser::Observation> observations = { obs };
 
-  slam.update(observations);
+  slam.update(observations, 0.0);
 
   // 랜드마크가 추가되었는지 확인
   Eigen::Vector3d pose = slam.getCurrentPose();
