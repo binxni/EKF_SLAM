@@ -3,6 +3,7 @@
 #include "sensor_msgs/msg/laser_scan.hpp"
 
 #include <memory>
+#include <cmath>
 
 namespace ekf_slam
 {
@@ -104,8 +105,12 @@ SlamNode::~SlamNode()
 
 void SlamNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
 {
+  // Odometry provides yaw rate (angular velocity) rather than steering angle.
+  // Convert the yaw rate to a steering angle using a simple bicycle model.
   double v = msg->twist.twist.linear.x;    // 선속도
-  double steering = msg->twist.twist.angular.z;   // 조향각
+  double yaw_rate = msg->twist.twist.angular.z;   // 요속도(rad/s)
+  double steering =
+      std::fabs(v) > 1e-6 ? std::atan(yaw_rate * wheel_base_ / v) : 0.0;
 
   rclcpp::Time current_time = this->now();
   double dt = (current_time - last_cmd_time_).seconds();
