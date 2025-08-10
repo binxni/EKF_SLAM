@@ -79,7 +79,10 @@ void SlamNode::initialize()
   // future time calculations are performed with a consistent time source.
   // This prevents errors such as "can't subtract times with different
   // time sources" when subtracting ROS time from system time.
-  last_cmd_time_ = rclcpp::Time(0, this->get_clock()->get_clock_type());
+  // Disambiguate constructor by explicitly specifying seconds and
+  // nanoseconds to ensure the clock type is preserved.
+  last_cmd_time_ =
+    rclcpp::Time(0, 0, this->get_clock()->get_clock_type());
 
   // odom subscription (EKF predict input)
   odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
