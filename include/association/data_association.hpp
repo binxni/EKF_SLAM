@@ -14,7 +14,7 @@ struct Observation;
 
 class DataAssociation {
 public:
-    DataAssociation(double mahalanobis_thresh);
+    DataAssociation(double mahalanobis_thresh, double ratio_thresh);
 
     // 관측값에 대해 연관된 landmark_id 반환 (-1이면 신규)
     int associate(
@@ -25,7 +25,8 @@ public:
         const Eigen::Matrix2d& Q); // 측정 노이즈 공분산
 
 private:
-    double threshold_;  // 마할라노비스 거리 임계값
+    double threshold_;      // 마할라노비스 거리 임계값
+    double ratio_thresh_;   // 최근접 거리 비율 임계값
 };
 
 }  // namespace ekf_slam

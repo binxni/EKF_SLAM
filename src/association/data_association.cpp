@@ -5,8 +5,8 @@
 
 namespace ekf_slam {
 
-DataAssociation::DataAssociation(double mahalanobis_thresh)
-: threshold_(mahalanobis_thresh) {}
+DataAssociation::DataAssociation(double mahalanobis_thresh, double ratio_thresh)
+: threshold_(mahalanobis_thresh), ratio_thresh_(ratio_thresh) {}
 
 int DataAssociation::associate(
     const laser::Observation& obs,
@@ -15,7 +15,8 @@ int DataAssociation::associate(
     const std::unordered_map<int, int>& landmark_index_map,
     const Eigen::Matrix2d& Q)
 {
-    double min_dist = threshold_;
+    double min_dist = std::numeric_limits<double>::infinity();
+    double second_min = std::numeric_limits<double>::infinity();
     int matched_id = -1;
 
     for (const auto& [landmark_id, idx] : landmark_index_map) {
@@ -48,12 +49,23 @@ int DataAssociation::associate(
 
         double dist = innovation.transpose() * S.inverse() * innovation;
         if (dist < min_dist) {
+            second_min = min_dist;
             min_dist = dist;
             matched_id = landmark_id;
+        } else if (dist < second_min) {
+            second_min = dist;
         }
     }
 
-    return matched_id;
+    double ratio = min_dist / second_min;
+    if (second_min == std::numeric_limits<double>::infinity()) {
+        ratio = 0.0; // only one landmark candidate
+    }
+
+    if (min_dist < threshold_ && ratio < ratio_thresh_) {
+        return matched_id;
+    }
+    return -1;
 }
 
 }  // namespace ekf_slam

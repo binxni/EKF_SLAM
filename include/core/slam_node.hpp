@@ -36,6 +36,7 @@ private:
   double noise_x_, noise_y_, noise_theta_;
   double meas_range_noise_, meas_bearing_noise_;
   double assoc_thresh_;
+  double assoc_ratio_;
   int scan_downsample_;
   int map_width_, map_height_;
   double resolution_;

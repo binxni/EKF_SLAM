@@ -21,6 +21,7 @@ SlamNode::SlamNode() : Node("ekf_slam_node")
   this->declare_parameter("measurement_noise.range", 0.05);
   this->declare_parameter("measurement_noise.bearing", 0.05);
   this->declare_parameter("data_association.threshold", 5.99);
+  this->declare_parameter("data_association.ratio", 0.8);
   this->declare_parameter("scan_downsample.step", 10);
   this->declare_parameter("map.width", 1500);
   this->declare_parameter("map.height", 1500);
@@ -33,6 +34,7 @@ SlamNode::SlamNode() : Node("ekf_slam_node")
   this->get_parameter("measurement_noise.range", meas_range_noise_);
   this->get_parameter("measurement_noise.bearing", meas_bearing_noise_);
   this->get_parameter("data_association.threshold", assoc_thresh_);
+  this->get_parameter("data_association.ratio", assoc_ratio_);
   this->get_parameter("scan_downsample.step", scan_downsample_);
   this->get_parameter("map.width", map_width_);
   this->get_parameter("map.height", map_height_);
@@ -41,7 +43,8 @@ SlamNode::SlamNode() : Node("ekf_slam_node")
   // EKF SLAM 시스템 생성시 멤버 변수 사용
   ekf_ = std::make_shared<EkfSlamSystem>(
     noise_x_, noise_y_, noise_theta_,
-    meas_range_noise_, meas_bearing_noise_, assoc_thresh_
+    meas_range_noise_, meas_bearing_noise_,
+    assoc_thresh_, assoc_ratio_
   );
 
   RCLCPP_INFO(this->get_logger(), "EKF SLAM Node Initialized.");
