@@ -26,6 +26,7 @@ SlamNode::SlamNode() : Node("ekf_slam_node")
   this->declare_parameter("map.width", 1500);
   this->declare_parameter("map.height", 1500);
   this->declare_parameter("map.resolution", 0.05);
+  this->declare_parameter("wheel_base", 0.33);
 
   // 파라미터 불러오기 → 바로 멤버 변수에 저장
   this->get_parameter("control_noise.x", noise_x_);
@@ -39,12 +40,13 @@ SlamNode::SlamNode() : Node("ekf_slam_node")
   this->get_parameter("map.width", map_width_);
   this->get_parameter("map.height", map_height_);
   this->get_parameter("map.resolution", resolution_);
+  this->get_parameter("wheel_base", wheel_base_);
 
   // EKF SLAM 시스템 생성시 멤버 변수 사용
   ekf_ = std::make_shared<EkfSlamSystem>(
     noise_x_, noise_y_, noise_theta_,
     meas_range_noise_, meas_bearing_noise_,
-    assoc_thresh_, assoc_ratio_
+    assoc_thresh_, assoc_ratio_, wheel_base_
   );
 
   RCLCPP_INFO(this->get_logger(), "EKF SLAM Node Initialized.");
@@ -103,7 +105,7 @@ SlamNode::~SlamNode()
 void SlamNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
 {
   double v = msg->twist.twist.linear.x;    // 선속도
-  double w = msg->twist.twist.angular.z;   // 각속도
+  double steering = msg->twist.twist.angular.z;   // 조향각
 
   rclcpp::Time current_time = this->now();
   double dt = (current_time - last_cmd_time_).seconds();
@@ -111,7 +113,7 @@ void SlamNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
 
   if (dt <= 0.0 || dt > 1.0) return;  // 너무 큰 간격은 무시
 
-  ekf_->predict(v, w, dt);             // EKF 예측 수행
+  ekf_->predict(v, steering, dt);      // EKF 예측 수행
 }
 
 void SlamNode::scanCallback(const sensor_msgs::msg::LaserScan::SharedPtr msg)

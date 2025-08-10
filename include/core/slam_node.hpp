@@ -40,6 +40,7 @@ private:
   int scan_downsample_;
   int map_width_, map_height_;
   double resolution_;
+  double wheel_base_;
   
   // LaserScan 수신 콜백
   void scanCallback(const sensor_msgs::msg::LaserScan::SharedPtr msg);

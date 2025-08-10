@@ -9,10 +9,11 @@ namespace ekf_slam {
 EkfSlamSystem::EkfSlamSystem(double noise_x, double noise_y,
                              double noise_theta, double meas_range_noise,
                              double meas_bearing_noise, double assoc_thresh,
-                             double assoc_ratio)
+                             double assoc_ratio, double wheel_base)
     : noise_x_(noise_x), noise_y_(noise_y),
       noise_theta_(noise_theta), meas_range_noise_(meas_range_noise),
       meas_bearing_noise_(meas_bearing_noise),
+      wheel_base_(wheel_base),
       data_associator_(assoc_thresh, assoc_ratio),
       next_landmark_id_(0) {
   mu_ = Eigen::VectorXd::Zero(3);
@@ -24,10 +25,10 @@ EkfSlamSystem::EkfSlamSystem(double noise_x, double noise_y,
 // -----------------------------
 // 1. Predict
 // -----------------------------
-void EkfSlamSystem::predict(double v, double w, double dt) {
+void EkfSlamSystem::predict(double v, double steering, double dt) {
   double theta = mu_(2);
+  double w = v / wheel_base_ * std::tan(steering);
 
-  // Integrate the bicycle model exactly for better turning behaviour
   if (std::fabs(w) > 1e-6) {
     mu_(0) += (v / w) * (std::sin(theta + w * dt) - std::sin(theta));
     mu_(1) += (v / w) * (-std::cos(theta + w * dt) + std::cos(theta));
@@ -37,7 +38,6 @@ void EkfSlamSystem::predict(double v, double w, double dt) {
   }
   mu_(2) = utils::normalizeAngle(theta + w * dt);
 
-  // 자코비안 계산 (Gx)
   Eigen::Matrix3d Gx =
       ekf_slam::utils::computeMotionJacobian(v, theta, w, dt);
 
