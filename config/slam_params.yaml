@@ -9,6 +9,7 @@ ekf_slam:
       bearing: 0.05
     data_association:
       threshold: 5.991
+      ratio: 0.8
     scan_downsample:
       step: 10
     map:

@@ -8,10 +8,12 @@
 namespace ekf_slam {
 EkfSlamSystem::EkfSlamSystem(double noise_x, double noise_y,
                              double noise_theta, double meas_range_noise,
-                             double meas_bearing_noise, double assoc_thresh)
+                             double meas_bearing_noise, double assoc_thresh,
+                             double assoc_ratio)
     : noise_x_(noise_x), noise_y_(noise_y),
       noise_theta_(noise_theta), meas_range_noise_(meas_range_noise),
-      meas_bearing_noise_(meas_bearing_noise), data_associator_(assoc_thresh),
+      meas_bearing_noise_(meas_bearing_noise),
+      data_associator_(assoc_thresh, assoc_ratio),
       next_landmark_id_(0) {
   mu_ = Eigen::VectorXd::Zero(3);
   sigma_ = Eigen::MatrixXd::Identity(3, 3) * 1e-3;
