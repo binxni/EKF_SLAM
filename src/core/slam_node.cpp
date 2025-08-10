@@ -200,8 +200,6 @@ void SlamNode::scanCallback(const sensor_msgs::msg::LaserScan::SharedPtr msg) {
             << "," << post_cov(1, 2) << "," << post_cov(2, 0) << ","
             << post_cov(2, 1) << "," << post_cov(2, 2) << "\n";
   log_file_.flush();
-  RCLCPP_INFO(this->get_logger(), "Pose: x=%.2f, y=%.2f, θ=%.2f", pose(0),
-              pose(1), pose(2));
 
   // occupancy mapping을 위한 데이터 전송
   occupancy_mapper_->addScanData(pose, *msg);
@@ -217,11 +215,6 @@ void SlamNode::publishMap() {
     auto occupancy_grid = occupancy_mapper_->getOccupancyGrid();
     map_pub_->publish(occupancy_grid);
 
-    // 디버그 정보
-    static int map_count = 0;
-    if (++map_count % 10 == 0) {
-      RCLCPP_INFO(this->get_logger(), "Published occupancy map #%d", map_count);
-    }
   }
 }
 

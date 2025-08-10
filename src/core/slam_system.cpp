@@ -1,12 +1,8 @@
 #include "core/slam_system.hpp"
 #include "association/data_association.hpp"
-#include "rclcpp/rclcpp.hpp"
 #include "utils/geometry_utils.hpp"
 #include "utils/jacobian_utils.hpp"
-#include <Eigen/SparseCholesky>
 #include <cmath>
-#include <utility>
-#include <sstream>
 
 namespace ekf_slam {
 EkfSlamSystem::EkfSlamSystem(double noise_x, double noise_y, double noise_theta,
@@ -18,21 +14,12 @@ EkfSlamSystem::EkfSlamSystem(double noise_x, double noise_y, double noise_theta,
       next_landmark_id_(0) {
   mu_ = Eigen::VectorXd::Zero(3);
   sigma_ = Eigen::MatrixXd::Identity(3, 3) * 1e-3;
-  info_matrix_ = sigma_.inverse().sparseView();
-  info_vector_ = info_matrix_ * mu_;
-
-  // 로그 파일 초기화
-  log_stream_.open("slam_log.csv");
-  if (log_stream_.is_open()) {
-    log_stream_ << "time,x,y,theta,innovation_range,innovation_bearing,mahalanobis\n";
-  }
 }
 
 void EkfSlamSystem::setPose(double x, double y, double theta) {
   mu_(0) = x;
   mu_(1) = y;
   mu_(2) = utils::normalizeAngle(theta);
-  info_vector_ = info_matrix_ * mu_;
 }
 
 // -----------------------------
@@ -68,31 +55,22 @@ void EkfSlamSystem::predict(double v, double w, double dt) {
   G_bar.block<3, 3>(0, 0) = Gx;
 
   sigma_ = G_bar * sigma_ * G_bar.transpose() + Fx.transpose() * R * Fx;
-
-  info_matrix_ = sigma_.inverse().sparseView();
-  info_vector_ = info_matrix_ * mu_;
 }
 
 // -----------------------------
 // 2. Update
 // -----------------------------
-  void EkfSlamSystem::update(
-      const std::vector<ekf_slam::laser::Observation> &observations,
-      double timestamp) {
-    std::vector<std::pair<Eigen::Vector2d, double>> log_entries;
-    log_entries.reserve(observations.size());
-
-    auto logger = rclcpp::get_logger("EkfSlamSystem");
-
+void EkfSlamSystem::update(
+    const std::vector<ekf_slam::laser::Observation> &observations,
+    double /*timestamp*/) {
   for (const auto &obs : observations) {
     Eigen::Matrix2d Q = getMeasurementNoiseMatrix();
     Eigen::Vector2d innovation;
     double mahal_dist;
     int id = data_associator_.associate(obs, mu_, sigma_, landmark_index_map_, Q,
                                         innovation, mahal_dist);
+    (void)mahal_dist;
     if (id == -1) {
-      RCLCPP_DEBUG(logger, "No association found. Adding new landmark id %d",
-                   next_landmark_id_);
       id = next_landmark_id_++;
       addLandmark(obs, id);
       continue;
@@ -117,55 +95,11 @@ void EkfSlamSystem::predict(double v, double w, double dt) {
 
     Eigen::MatrixXd H = ekf_slam::utils::computeObservationJacobian(mu_, idx);
     Eigen::Matrix2d S = H * sigma_ * H.transpose() + Q;
-    double mahalanobis = innovation.transpose() * S.inverse() * innovation;
-    RCLCPP_DEBUG(logger,
-                 "Association result -> id: %d, Mahalanobis distance: %.3f", id,
-                 mahalanobis);
-
-    double range_thresh = 3.0 * std::sqrt(Q(0, 0));
-    double bearing_thresh = 3.0 * std::sqrt(Q(1, 1));
-    if (std::abs(innovation(0)) > range_thresh ||
-        std::abs(innovation(1)) > bearing_thresh) {
-      RCLCPP_WARN(logger,
-                  "Innovation exceeds threshold: range %.3f, bearing %.3f",
-                  innovation(0), innovation(1));
-    }
-    RCLCPP_DEBUG(logger, "Innovation: [%.3f, %.3f]", innovation(0),
-                 innovation(1));
-
-    Eigen::Matrix2d Q_inv = Q.inverse();
-    Eigen::MatrixXd Ht_Qinv = H.transpose() * Q_inv;
-
-    info_matrix_ += (Ht_Qinv * H).sparseView();
-    info_vector_ += Ht_Qinv * (innovation_update + H * mu_);
-
-    log_entries.emplace_back(innovation, mahal_dist);
-
-    Eigen::MatrixXd info_dense(info_matrix_);
-    std::stringstream ss_info;
-    ss_info << info_dense;
-    RCLCPP_DEBUG(logger, "info_matrix_:\n%s", ss_info.str().c_str());
-
-    std::stringstream ss_mu;
-    ss_mu << mu_.transpose();
-    RCLCPP_DEBUG(logger, "mu_: %s", ss_mu.str().c_str());
-  }
-
-  sparsifyInformationMatrix(1e-6);
-  Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> solver(info_matrix_);
-  mu_ = solver.solve(info_vector_);
-  mu_(2) = utils::normalizeAngle(mu_(2));
-  sigma_ = solver.solve(
-      Eigen::MatrixXd::Identity(info_matrix_.rows(), info_matrix_.cols()));
-  info_vector_ = info_matrix_ * mu_;
-
-  Eigen::Vector3d pose = getCurrentPose();
-  if (log_stream_.is_open()) {
-    for (const auto &entry : log_entries) {
-      log_stream_ << timestamp << "," << pose(0) << "," << pose(1) << ","
-                  << pose(2) << "," << entry.first(0) << "," << entry.first(1)
-                  << "," << entry.second << "\n";
-    }
+    Eigen::MatrixXd K = sigma_ * H.transpose() * S.inverse();
+    mu_ += K * innovation_update;
+    mu_(2) = utils::normalizeAngle(mu_(2));
+    Eigen::MatrixXd I = Eigen::MatrixXd::Identity(mu_.rows(), mu_.rows());
+    sigma_ = (I - K * H) * sigma_;
   }
 }
 
@@ -205,9 +139,6 @@ void EkfSlamSystem::extendState(int landmark_id,
   mu_(old_size + 1) = ly;
 
   landmark_index_map_[landmark_id] = old_size;
-
-  info_matrix_ = sigma_.inverse().sparseView();
-  info_vector_ = info_matrix_ * mu_;
 }
 // -----------------------------
 // 5. 기타 유틸
@@ -274,10 +205,6 @@ Eigen::Matrix2d EkfSlamSystem::getMeasurementNoiseMatrix() const {
   Q(0, 0) = meas_range_noise_ * meas_range_noise_;
   Q(1, 1) = meas_bearing_noise_ * meas_bearing_noise_;
   return Q;
-}
-
-void EkfSlamSystem::sparsifyInformationMatrix(double threshold) {
-  info_matrix_.prune(threshold);
 }
 
 } // namespace ekf_slam

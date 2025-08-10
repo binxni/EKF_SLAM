@@ -2,10 +2,8 @@
 #define EKF_SLAM_SYSTEM_HPP_
 
 #include <Eigen/Dense>
-#include <Eigen/Sparse>
 #include <unordered_map>
 #include <vector>
-#include <fstream>
 
 #include "association/data_association.hpp"
 #include "preprocessing/laser_processor.hpp"
@@ -47,10 +45,6 @@ private:
   // 공분산 행렬
   Eigen::MatrixXd sigma_;
 
-  // Sparse Extended Information Filter representation
-  Eigen::SparseMatrix<double> info_matrix_;
-  Eigen::VectorXd info_vector_;
-
   double noise_x_, noise_y_, noise_theta_; // control noise
   double meas_range_noise_, meas_bearing_noise_;
 
@@ -59,9 +53,6 @@ private:
 
   ekf_slam::DataAssociation data_associator_;
   int next_landmark_id_;
-
-  // 로그 파일 스트림
-  std::ofstream log_stream_;
 
   // 상태 확장 함수
   void extendState(int landmark_id, const laser::Observation &obs);
@@ -72,8 +63,6 @@ private:
                                     double bearing_noise_var);
 
   Eigen::Matrix2d getMeasurementNoiseMatrix() const;
-
-  void sparsifyInformationMatrix(double threshold);
 };
 
 } // namespace ekf_slam
