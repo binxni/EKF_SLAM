@@ -6,16 +6,13 @@
 #include <cmath>
 
 namespace ekf_slam {
-EkfSlamSystem::EkfSlamSystem(double noise_x, double noise_y,
-                             double noise_theta, double meas_range_noise,
-                             double meas_bearing_noise, double assoc_thresh,
-                             double assoc_ratio, double wheel_base)
-    : noise_x_(noise_x), noise_y_(noise_y),
-      noise_theta_(noise_theta), meas_range_noise_(meas_range_noise),
+EkfSlamSystem::EkfSlamSystem(double noise_x, double noise_y, double noise_theta,
+                             double meas_range_noise, double meas_bearing_noise,
+                             double assoc_thresh, double assoc_ratio)
+    : noise_x_(noise_x), noise_y_(noise_y), noise_theta_(noise_theta),
+      meas_range_noise_(meas_range_noise),
       meas_bearing_noise_(meas_bearing_noise),
-      wheel_base_(wheel_base),
-      data_associator_(assoc_thresh, assoc_ratio),
-      next_landmark_id_(0) {
+      data_associator_(assoc_thresh, assoc_ratio), next_landmark_id_(0) {
   mu_ = Eigen::VectorXd::Zero(3);
   sigma_ = Eigen::MatrixXd::Identity(3, 3) * 1e-3;
   info_matrix_ = sigma_.inverse().sparseView();
@@ -25,9 +22,9 @@ EkfSlamSystem::EkfSlamSystem(double noise_x, double noise_y,
 // -----------------------------
 // 1. Predict
 // -----------------------------
-void EkfSlamSystem::predict(double v, double steering, double dt) {
+void EkfSlamSystem::predict(double v, double yaw_rate, double dt) {
   double theta = mu_(2);
-  double w = v / wheel_base_ * std::tan(steering);
+  double w = yaw_rate;
 
   if (std::fabs(w) > 1e-6) {
     mu_(0) += (v / w) * (std::sin(theta + w * dt) - std::sin(theta));
@@ -38,8 +35,7 @@ void EkfSlamSystem::predict(double v, double steering, double dt) {
   }
   mu_(2) = utils::normalizeAngle(theta + w * dt);
 
-  Eigen::Matrix3d Gx =
-      ekf_slam::utils::computeMotionJacobian(v, theta, w, dt);
+  Eigen::Matrix3d Gx = ekf_slam::utils::computeMotionJacobian(v, theta, w, dt);
 
   // 제어 노이즈
   Eigen::Matrix3d R = Eigen::Matrix3d::Zero();

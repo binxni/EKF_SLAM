@@ -2,14 +2,12 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
 
-#include <memory>
 #include <cmath>
+#include <memory>
 
-namespace ekf_slam
-{
+namespace ekf_slam {
 
-SlamNode::SlamNode() : Node("ekf_slam_node")
-{
+SlamNode::SlamNode() : Node("ekf_slam_node") {
   // TF2 초기화
   tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
@@ -27,7 +25,6 @@ SlamNode::SlamNode() : Node("ekf_slam_node")
   this->declare_parameter("map.width", 1500);
   this->declare_parameter("map.height", 1500);
   this->declare_parameter("map.resolution", 0.05);
-  this->declare_parameter("wheel_base", 0.33);
 
   // 파라미터 불러오기 → 바로 멤버 변수에 저장
   this->get_parameter("control_noise.x", noise_x_);
@@ -41,34 +38,31 @@ SlamNode::SlamNode() : Node("ekf_slam_node")
   this->get_parameter("map.width", map_width_);
   this->get_parameter("map.height", map_height_);
   this->get_parameter("map.resolution", resolution_);
-  this->get_parameter("wheel_base", wheel_base_);
 
   // EKF SLAM 시스템 생성시 멤버 변수 사용
-  ekf_ = std::make_shared<EkfSlamSystem>(
-    noise_x_, noise_y_, noise_theta_,
-    meas_range_noise_, meas_bearing_noise_,
-    assoc_thresh_, assoc_ratio_, wheel_base_
-  );
+  ekf_ = std::make_shared<EkfSlamSystem>(noise_x_, noise_y_, noise_theta_,
+                                         meas_range_noise_, meas_bearing_noise_,
+                                         assoc_thresh_, assoc_ratio_);
 
   RCLCPP_INFO(this->get_logger(), "EKF SLAM Node Initialized.");
 }
 
-void SlamNode::initialize()
-{
+void SlamNode::initialize() {
   // LaserScan 전처리기 초기화
   laser_processor_ = std::make_shared<laser::LaserProcessor>(
-    shared_from_this(), tf_buffer_.get(), "base_link", static_cast<std::size_t>(scan_downsample_));
-  
-  RCLCPP_INFO(this->get_logger(), "Laser Processor Initialized with downsample step: %d", scan_downsample_);
-  
+      shared_from_this(), tf_buffer_.get(), "base_link",
+      static_cast<std::size_t>(scan_downsample_));
+
+  RCLCPP_INFO(this->get_logger(),
+              "Laser Processor Initialized with downsample step: %d",
+              scan_downsample_);
+
   // Occupancy Mapper 초기화 추가
-  occupancy_mapper_ = std::make_shared<OccupancyMapper>(
-      shared_from_this(),  // 현재 노드 전달
-      map_width_,
-      map_height_,
-      resolution_
-  );
-  RCLCPP_INFO(this->get_logger(), "Occupancy Mapper Initialized with size: %dx%d, resolution: %.2f",
+  occupancy_mapper_ =
+      std::make_shared<OccupancyMapper>(shared_from_this(), // 현재 노드 전달
+                                        map_width_, map_height_, resolution_);
+  RCLCPP_INFO(this->get_logger(),
+              "Occupancy Mapper Initialized with size: %dx%d, resolution: %.2f",
               map_width_, map_height_, resolution_);
 
   // Start occupancy mapping
@@ -81,56 +75,55 @@ void SlamNode::initialize()
   // time sources" when subtracting ROS time from system time.
   // Disambiguate constructor by explicitly specifying seconds and
   // nanoseconds to ensure the clock type is preserved.
-  last_cmd_time_ =
-    rclcpp::Time(0, 0, this->get_clock()->get_clock_type());
+  last_cmd_time_ = rclcpp::Time(0, 0, this->get_clock()->get_clock_type());
 
   // odom subscription (EKF predict input)
   odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-    "odom", 10, std::bind(&SlamNode::odomCallback, this, std::placeholders::_1));
+      "odom", 10,
+      std::bind(&SlamNode::odomCallback, this, std::placeholders::_1));
 
   // LaserScan subscription (EKF update input)
   scan_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
-    "scan", 10, std::bind(&SlamNode::scanCallback, this, std::placeholders::_1));
+      "scan", 10,
+      std::bind(&SlamNode::scanCallback, this, std::placeholders::_1));
 
   // Map publisher
   map_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>("map", 10);
 
   // Trajectory visualizer
-  trajectory_visualizer_ = std::make_shared<TrajectoryVisualizer>(shared_from_this());
+  trajectory_visualizer_ =
+      std::make_shared<TrajectoryVisualizer>(shared_from_this());
 
   // Periodic map publish timer (1 second interval)
-  map_timer_ = this->create_wall_timer(
-    std::chrono::seconds(1), std::bind(&SlamNode::publishMap, this));
+  map_timer_ = this->create_wall_timer(std::chrono::seconds(1),
+                                       std::bind(&SlamNode::publishMap, this));
 }
 
-SlamNode::~SlamNode()
-{   if (occupancy_mapper_) {
-      occupancy_mapper_->stopMapping();
-    }
+SlamNode::~SlamNode() {
+  if (occupancy_mapper_) {
+    occupancy_mapper_->stopMapping();
+  }
 }
 
-void SlamNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
-{
-  // Odometry provides yaw rate (angular velocity) rather than steering angle.
-  // Convert the yaw rate to a steering angle using a simple bicycle model.
-  double v = msg->twist.twist.linear.x;    // 선속도
-  double yaw_rate = msg->twist.twist.angular.z;   // 요속도(rad/s)
-  double steering =
-      std::fabs(v) > 1e-6 ? std::atan(yaw_rate * wheel_base_ / v) : 0.0;
+void SlamNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg) {
+  // Odometry provides yaw rate (angular velocity).
+  double v = msg->twist.twist.linear.x;         // 선속도
+  double yaw_rate = msg->twist.twist.angular.z; // 요속도(rad/s)
 
   // Use the same clock type for both the incoming message timestamp and the
   // stored previous timestamp to avoid mixing ROS and system time sources.
-  rclcpp::Time current_time(msg->header.stamp, this->get_clock()->get_clock_type());
+  rclcpp::Time current_time(msg->header.stamp,
+                            this->get_clock()->get_clock_type());
   double dt = (current_time - last_cmd_time_).seconds();
   last_cmd_time_ = current_time;
 
-  if (dt <= 0.0 || dt > 1.0) return;  // 너무 큰 간격은 무시
+  if (dt <= 0.0 || dt > 1.0)
+    return; // 너무 큰 간격은 무시
 
-  ekf_->predict(v, steering, dt);      // EKF 예측 수행
+  ekf_->predict(v, yaw_rate, dt); // EKF 예측 수행
 }
 
-void SlamNode::scanCallback(const sensor_msgs::msg::LaserScan::SharedPtr msg)
-{
+void SlamNode::scanCallback(const sensor_msgs::msg::LaserScan::SharedPtr msg) {
   // LaserScan → 관측값 변환
   auto observations = laser_processor_->process(*msg);
 
@@ -139,37 +132,35 @@ void SlamNode::scanCallback(const sensor_msgs::msg::LaserScan::SharedPtr msg)
 
   // 현재 추정된 로봇 pose 출력
   auto pose = ekf_->getCurrentPose();
-  RCLCPP_INFO(this->get_logger(), "Pose: x=%.2f, y=%.2f, θ=%.2f",
-              pose(0), pose(1), pose(2));
+  RCLCPP_INFO(this->get_logger(), "Pose: x=%.2f, y=%.2f, θ=%.2f", pose(0),
+              pose(1), pose(2));
 
-  //occupancy mapping을 위한 데이터 전송
+  // occupancy mapping을 위한 데이터 전송
   occupancy_mapper_->addScanData(pose, *msg);
 
   // Update trajectory visualization
   if (trajectory_visualizer_) {
     trajectory_visualizer_->addPose(pose(0), pose(1), this->now());
   }
-
 }
 
 void SlamNode::publishMap() {
-    if (occupancy_mapper_ && occupancy_mapper_->isInitialized()) {
-        auto occupancy_grid = occupancy_mapper_->getOccupancyGrid();
-        map_pub_->publish(occupancy_grid);
-        
-        // 디버그 정보
-        static int map_count = 0;
-        if (++map_count % 10 == 0) {
-            RCLCPP_INFO(this->get_logger(), "Published occupancy map #%d", map_count);
-        }
+  if (occupancy_mapper_ && occupancy_mapper_->isInitialized()) {
+    auto occupancy_grid = occupancy_mapper_->getOccupancyGrid();
+    map_pub_->publish(occupancy_grid);
+
+    // 디버그 정보
+    static int map_count = 0;
+    if (++map_count % 10 == 0) {
+      RCLCPP_INFO(this->get_logger(), "Published occupancy map #%d", map_count);
     }
+  }
 }
 
-}  // namespace ekf_slam
+} // namespace ekf_slam
 
 // main
-int main(int argc, char** argv)
-{
+int main(int argc, char **argv) {
   rclcpp::init(argc, argv);
   auto node = std::make_shared<ekf_slam::SlamNode>();
   node->initialize();
