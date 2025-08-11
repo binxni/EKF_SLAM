@@ -2,7 +2,6 @@
 #include "association/data_association.hpp"
 #include "utils/geometry_utils.hpp"
 #include "utils/jacobian_utils.hpp"
-#include <Eigen/SparseCholesky>
 #include <cmath>
 
 namespace ekf_slam {
@@ -18,8 +17,6 @@ EkfSlamSystem::EkfSlamSystem(double noise_x, double noise_y,
       next_landmark_id_(0) {
   mu_ = Eigen::VectorXd::Zero(3);
   sigma_ = Eigen::MatrixXd::Identity(3, 3) * 1e-3;
-  info_matrix_ = sigma_.inverse().sparseView();
-  info_vector_ = info_matrix_ * mu_;
 }
 
 // -----------------------------
@@ -55,9 +52,6 @@ void EkfSlamSystem::predict(double v, double steering, double dt) {
   G_bar.block<3, 3>(0, 0) = Gx;
 
   sigma_ = G_bar * sigma_ * G_bar.transpose() + Fx.transpose() * R * Fx;
-
-  info_matrix_ = sigma_.inverse().sparseView();
-  info_vector_ = info_matrix_ * mu_;
 }
 
 // -----------------------------
@@ -93,20 +87,16 @@ void EkfSlamSystem::update(
     innovation(1) = utils::normalizeAngle(innovation(1));
 
     Eigen::MatrixXd H = ekf_slam::utils::computeObservationJacobian(mu_, idx);
-    Eigen::Matrix2d Q_inv = Q.inverse();
-    Eigen::MatrixXd Ht_Qinv = H.transpose() * Q_inv;
 
-    info_matrix_ += (Ht_Qinv * H).sparseView();
-    info_vector_ += Ht_Qinv * (innovation + H * mu_);
+    Eigen::MatrixXd S = H * sigma_ * H.transpose() + Q;
+    Eigen::MatrixXd K = sigma_ * H.transpose() * S.inverse();
+
+    mu_ = mu_ + K * innovation;
+    mu_(2) = utils::normalizeAngle(mu_(2));
+
+    Eigen::MatrixXd I = Eigen::MatrixXd::Identity(mu_.size(), mu_.size());
+    sigma_ = (I - K * H) * sigma_ * (I - K * H).transpose() + K * Q * K.transpose();
   }
-
-  sparsifyInformationMatrix(1e-6);
-  Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> solver(info_matrix_);
-  mu_ = solver.solve(info_vector_);
-  mu_(2) = utils::normalizeAngle(mu_(2));
-  sigma_ = solver.solve(
-      Eigen::MatrixXd::Identity(info_matrix_.rows(), info_matrix_.cols()));
-  info_vector_ = info_matrix_ * mu_;
 }
 
 // -----------------------------
@@ -145,9 +135,6 @@ void EkfSlamSystem::extendState(int landmark_id,
   mu_(old_size + 1) = ly;
 
   landmark_index_map_[landmark_id] = old_size;
-
-  info_matrix_ = sigma_.inverse().sparseView();
-  info_vector_ = info_matrix_ * mu_;
 }
 // -----------------------------
 // 5. 기타 유틸
@@ -212,10 +199,6 @@ Eigen::Matrix2d EkfSlamSystem::getMeasurementNoiseMatrix() const {
   Q(0, 0) = meas_range_noise_ * meas_range_noise_;
   Q(1, 1) = meas_bearing_noise_ * meas_bearing_noise_;
   return Q;
-}
-
-void EkfSlamSystem::sparsifyInformationMatrix(double threshold) {
-  info_matrix_.prune(threshold);
 }
 
 } // namespace ekf_slam
