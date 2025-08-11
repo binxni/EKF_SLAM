@@ -6,20 +6,19 @@
 #include <unordered_map>
 #include <vector>
 
-#include "preprocessing/laser_processor.hpp"
 #include "association/data_association.hpp"
+#include "preprocessing/laser_processor.hpp"
 
 namespace ekf_slam {
 
 class EkfSlamSystem {
 public:
-  EkfSlamSystem(double noise_x, double noise_y,
-                double noise_theta, double meas_range_noise,
-                double meas_bearing_noise, double data_association_thresh,
-                double data_association_ratio, double wheel_base);
+  EkfSlamSystem(double noise_x, double noise_y, double noise_theta,
+                double meas_range_noise, double meas_bearing_noise,
+                double data_association_thresh, double data_association_ratio);
 
-  // 예측: 제어입력 (선속도, 조향각), 시간 간격
-  void predict(double v, double steering, double dt);
+  // 예측: 제어입력 (선속도, 요속도), 시간 간격
+  void predict(double v, double yaw_rate, double dt);
 
   // 업데이트: 관측값 (range-bearing)
   void update(const std::vector<laser::Observation> &observations);
@@ -46,7 +45,6 @@ private:
 
   double noise_x_, noise_y_, noise_theta_; // control noise
   double meas_range_noise_, meas_bearing_noise_;
-  double wheel_base_;
 
   // 랜드마크 ID → mu_ 인덱스 매핑
   std::unordered_map<int, int> landmark_index_map_;
