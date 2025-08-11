@@ -1,6 +1,7 @@
 #include "core/slam_system.hpp"
 #include "association/data_association.hpp"
 #include "utils/geometry_utils.hpp"
+#include "utils/jacobian_utils.hpp"
 #include <Eigen/SparseCholesky>
 #include <cmath>
 
