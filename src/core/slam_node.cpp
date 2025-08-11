@@ -1,6 +1,7 @@
 #include "core/slam_node.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
+#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
 #include <cmath>
 #include <memory>
@@ -106,9 +107,9 @@ SlamNode::~SlamNode() {
 }
 
 void SlamNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg) {
-  // Odometry provides yaw rate (angular velocity).
-  double v = msg->twist.twist.linear.x;         // 선속도
-  double yaw_rate = msg->twist.twist.angular.z; // 요속도(rad/s)
+  // Odometry provides orientation from which yaw is extracted.
+  double v = msg->twist.twist.linear.x; // 선속도
+  double yaw = tf2::getYaw(msg->pose.pose.orientation); // 요각(rad)
 
   // Use the same clock type for both the incoming message timestamp and the
   // stored previous timestamp to avoid mixing ROS and system time sources.
@@ -120,7 +121,7 @@ void SlamNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg) {
   if (dt <= 0.0 || dt > 1.0)
     return; // 너무 큰 간격은 무시
 
-  ekf_->predict(v, yaw_rate, dt); // EKF 예측 수행
+  ekf_->predict(v, yaw, dt); // EKF 예측 수행
 }
 
 void SlamNode::scanCallback(const sensor_msgs::msg::LaserScan::SharedPtr msg) {
