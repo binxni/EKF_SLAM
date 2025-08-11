@@ -1,7 +1,6 @@
 #include "core/slam_system.hpp"
 #include "association/data_association.hpp"
 #include "utils/geometry_utils.hpp"
-#include "utils/jacobian_utils.hpp"
 #include <Eigen/SparseCholesky>
 #include <cmath>
 
@@ -22,20 +21,15 @@ EkfSlamSystem::EkfSlamSystem(double noise_x, double noise_y, double noise_theta,
 // -----------------------------
 // 1. Predict
 // -----------------------------
-void EkfSlamSystem::predict(double v, double yaw_rate, double dt) {
-  double theta = mu_(2);
-  double w = yaw_rate;
+void EkfSlamSystem::predict(double v, double yaw, double dt) {
+  // Use the absolute yaw orientation directly from odometry.
+  mu_(0) += v * std::cos(yaw) * dt;
+  mu_(1) += v * std::sin(yaw) * dt;
+  mu_(2) = utils::normalizeAngle(yaw);
 
-  if (std::fabs(w) > 1e-6) {
-    mu_(0) += (v / w) * (std::sin(theta + w * dt) - std::sin(theta));
-    mu_(1) += (v / w) * (-std::cos(theta + w * dt) + std::cos(theta));
-  } else {
-    mu_(0) += v * std::cos(theta) * dt;
-    mu_(1) += v * std::sin(theta) * dt;
-  }
-  mu_(2) = utils::normalizeAngle(theta + w * dt);
-
-  Eigen::Matrix3d Gx = ekf_slam::utils::computeMotionJacobian(v, theta, w, dt);
+  // Jacobian of the motion model w.r.t the state is identity since yaw
+  // comes from the control input and does not depend on previous theta.
+  Eigen::Matrix3d Gx = Eigen::Matrix3d::Identity();
 
   // 제어 노이즈
   Eigen::Matrix3d R = Eigen::Matrix3d::Zero();

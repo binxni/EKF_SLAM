@@ -17,8 +17,8 @@ public:
                 double meas_range_noise, double meas_bearing_noise,
                 double data_association_thresh, double data_association_ratio);
 
-  // 예측: 제어입력 (선속도, 요속도), 시간 간격
-  void predict(double v, double yaw_rate, double dt);
+  // 예측: 제어입력 (선속도, 절대 요각), 시간 간격
+  void predict(double v, double yaw, double dt);
 
   // 업데이트: 관측값 (range-bearing)
   void update(const std::vector<laser::Observation> &observations);

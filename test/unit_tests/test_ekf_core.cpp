@@ -12,7 +12,7 @@ TEST(EkfSlamSystemTest, Initialization) {
 TEST(EkfSlamSystemTest, PredictMotion) {
   ekf_slam::EkfSlamSystem slam(0.01, 0.01, 0.01, 0.5, 0.1, 2.0, 0.8);
 
-  // v = 1.0 m/s, yaw_rate = 0.0 rad/s, dt = 1.0 s → 직선 전진
+  // v = 1.0 m/s, yaw = 0.0 rad, dt = 1.0 s → 직선 전진
   slam.predict(1.0, 0.0, 1.0);
 
   Eigen::Vector3d pose = slam.getCurrentPose();
