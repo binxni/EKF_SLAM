@@ -7,6 +7,7 @@
 #include <queue>
 #include <atomic>
 #include <condition_variable>
+#include <string>
 
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
@@ -38,6 +39,7 @@ public:
     
     // 맵 데이터 접근
     nav_msgs::msg::OccupancyGrid getOccupancyGrid() const;
+    bool saveMap(const std::string& file_prefix) const;
     bool isInitialized() const { return initialized_; }
     
     // 설정

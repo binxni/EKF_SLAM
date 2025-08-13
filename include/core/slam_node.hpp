@@ -8,6 +8,7 @@
 #include "nav_msgs/msg/odometry.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
+#include "std_srvs/srv/trigger.hpp"
 
 #include "visualization/trajectory_visualizer.hpp"
 
@@ -36,6 +37,7 @@ private:
   int scan_downsample_;
   int map_width_, map_height_;
   double resolution_;
+  std::string map_save_prefix_;
 
   // LaserScan 수신 콜백
   void scanCallback(const sensor_msgs::msg::LaserScan::SharedPtr msg);
@@ -45,6 +47,8 @@ private:
 
   // Occupancy map publish 함수
   void publishMap();
+  void saveMapServiceCallback(const std::shared_ptr<std_srvs::srv::Trigger::Request>,
+                              std::shared_ptr<std_srvs::srv::Trigger::Response>);
 
   // EKF SLAM 알고리즘 객체
   std::shared_ptr<ekf_slam::EkfSlamSystem> ekf_;
@@ -61,6 +65,7 @@ private:
 
   // ROS2 Publisher for map
   rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr map_pub_;
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr save_map_srv_;
 
   // Trajectory visualizer
   std::shared_ptr<TrajectoryVisualizer> trajectory_visualizer_;
