@@ -2,6 +2,8 @@
 #include "mapping/occupancy_mapper.hpp"
 #include <cmath>
 #include <algorithm>
+#include <fstream>
+#include <string>
 
 namespace ekf_slam {
 
@@ -252,6 +254,54 @@ nav_msgs::msg::OccupancyGrid OccupancyMapper::getOccupancyGrid() const {
     }
     
     return grid;
+}
+
+bool OccupancyMapper::saveMap(const std::string& file_prefix) const {
+    auto grid = getOccupancyGrid();
+
+    std::string pgm_file = file_prefix + ".pgm";
+    std::string yaml_file = file_prefix + ".yaml";
+
+    std::ofstream pgm(pgm_file, std::ios::out | std::ios::binary);
+    if (!pgm.is_open()) {
+        RCLCPP_ERROR(node_->get_logger(), "Failed to open %s", pgm_file.c_str());
+        return false;
+    }
+
+    pgm << "P5\n" << grid.info.width << " " << grid.info.height << "\n255\n";
+    for (int y = grid.info.height - 1; y >= 0; --y) {
+        for (unsigned int x = 0; x < grid.info.width; ++x) {
+            unsigned char val;
+            int8_t occ = grid.data[y * grid.info.width + x];
+            if (occ < 0) {
+                val = 205; // unknown
+            } else if (occ > 65) {
+                val = 0; // occupied
+            } else {
+                val = 254; // free
+            }
+            pgm.write(reinterpret_cast<char*>(&val), 1);
+        }
+    }
+    pgm.close();
+
+    std::ofstream yaml(yaml_file);
+    if (!yaml.is_open()) {
+        RCLCPP_ERROR(node_->get_logger(), "Failed to open %s", yaml_file.c_str());
+        return false;
+    }
+
+    yaml << "image: " << pgm_file << "\n";
+    yaml << "resolution: " << grid.info.resolution << "\n";
+    yaml << "origin: [" << grid.info.origin.position.x << ", "
+         << grid.info.origin.position.y << ", 0.0]\n";
+    yaml << "negate: 0\n";
+    yaml << "occupied_thresh: 0.65\n";
+    yaml << "free_thresh: 0.196\n";
+    yaml.close();
+
+    RCLCPP_INFO(node_->get_logger(), "Saved map to %s and %s", pgm_file.c_str(), yaml_file.c_str());
+    return true;
 }
 
 } // namespace ekf_slam

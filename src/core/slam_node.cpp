@@ -27,6 +27,7 @@ SlamNode::SlamNode() : Node("ekf_slam_node") {
   this->declare_parameter("map.width", 1500);
   this->declare_parameter("map.height", 1500);
   this->declare_parameter("map.resolution", 0.05);
+  this->declare_parameter("map.save_prefix", "map");
 
   // 파라미터 불러오기 → 바로 멤버 변수에 저장
   this->get_parameter("control_noise.x", noise_x_);
@@ -40,6 +41,7 @@ SlamNode::SlamNode() : Node("ekf_slam_node") {
   this->get_parameter("map.width", map_width_);
   this->get_parameter("map.height", map_height_);
   this->get_parameter("map.resolution", resolution_);
+  this->get_parameter("map.save_prefix", map_save_prefix_);
 
   // EKF SLAM 시스템 생성시 멤버 변수 사용
   ekf_ = std::make_shared<EkfSlamSystem>(noise_x_, noise_y_, noise_theta_,
@@ -99,6 +101,12 @@ void SlamNode::initialize() {
   // Periodic map publish timer (1 second interval)
   map_timer_ = this->create_wall_timer(std::chrono::seconds(1),
                                        std::bind(&SlamNode::publishMap, this));
+
+  // Service to save map
+  save_map_srv_ = this->create_service<std_srvs::srv::Trigger>(
+      "save_map",
+      std::bind(&SlamNode::saveMapServiceCallback, this, std::placeholders::_1,
+                std::placeholders::_2));
 }
 
 SlamNode::~SlamNode() {
@@ -156,6 +164,19 @@ void SlamNode::publishMap() {
     if (++map_count % 10 == 0) {
       RCLCPP_INFO(this->get_logger(), "Published occupancy map #%d", map_count);
     }
+  }
+}
+
+void SlamNode::saveMapServiceCallback(
+    const std::shared_ptr<std_srvs::srv::Trigger::Request>,
+    std::shared_ptr<std_srvs::srv::Trigger::Response> res) {
+  if (occupancy_mapper_ && occupancy_mapper_->isInitialized()) {
+    bool ok = occupancy_mapper_->saveMap(map_save_prefix_);
+    res->success = ok;
+    res->message = ok ? "Map saved" : "Failed to save map";
+  } else {
+    res->success = false;
+    res->message = "Mapper not initialized";
   }
 }
 

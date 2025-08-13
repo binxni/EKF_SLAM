@@ -18,6 +18,7 @@ find_package(visualization_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
 find_package(eigen3_cmake_module REQUIRED)
 find_package(Eigen3 REQUIRED)
 
@@ -41,6 +42,7 @@ ament_target_dependencies(${PROJECT_NAME}_lib
   tf2
   tf2_ros
   tf2_geometry_msgs
+  std_srvs
   Eigen3
 )
 
@@ -59,6 +61,7 @@ ament_target_dependencies(slam_node
   tf2
   tf2_ros
   tf2_geometry_msgs
+  std_srvs
   Eigen3
 )
 target_link_libraries(slam_node ${PROJECT_NAME}_lib)
