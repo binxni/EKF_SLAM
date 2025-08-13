@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <fstream>
 #include <string>
+#include <filesystem>
 
 namespace ekf_slam {
 
@@ -258,6 +259,19 @@ nav_msgs::msg::OccupancyGrid OccupancyMapper::getOccupancyGrid() const {
 
 bool OccupancyMapper::saveMap(const std::string& file_prefix) const {
     auto grid = getOccupancyGrid();
+
+    // Ensure the output directory exists
+    namespace fs = std::filesystem;
+    fs::path prefix_path(file_prefix);
+    if (prefix_path.has_parent_path()) {
+        std::error_code ec;
+        fs::create_directories(prefix_path.parent_path(), ec);
+        if (ec) {
+            RCLCPP_ERROR(node_->get_logger(), "Failed to create directory %s: %s",
+                         prefix_path.parent_path().string().c_str(), ec.message().c_str());
+            return false;
+        }
+    }
 
     std::string pgm_file = file_prefix + ".pgm";
     std::string yaml_file = file_prefix + ".yaml";
