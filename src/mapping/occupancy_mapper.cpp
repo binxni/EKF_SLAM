@@ -39,11 +39,25 @@ OccupancyMapper::~OccupancyMapper() {
     stopMapping();
 }
 
-void OccupancyMapper::setLogOddsParameters(double occ_prob, double free_prob) {
+void OccupancyMapper::setLogOddsParameters(double occ_prob, double free_prob,
+                                           double min_weight, double max_weight) {
+    // Allow parameters to be configured via YAML/parameter server
+    node_->declare_parameter("map.log_odds.occ_prob", occ_prob);
+    node_->declare_parameter("map.log_odds.free_prob", free_prob);
+    node_->declare_parameter("map.log_odds.min_weight", min_weight);
+    node_->declare_parameter("map.log_odds.max_weight", max_weight);
+
+    node_->get_parameter("map.log_odds.occ_prob", occ_prob);
+    node_->get_parameter("map.log_odds.free_prob", free_prob);
+    node_->get_parameter("map.log_odds.min_weight", min_weight);
+    node_->get_parameter("map.log_odds.max_weight", max_weight);
+
     log_odds_occ_ = std::log(occ_prob / (1.0 - occ_prob));
     log_odds_free_ = std::log(free_prob / (1.0 - free_prob));
     log_odds_max_ = std::log(0.95 / 0.05);
     log_odds_min_ = std::log(0.05 / 0.95);
+    min_weight_ = min_weight;
+    max_weight_ = max_weight;
 }
 
 void OccupancyMapper::startMapping() {
@@ -151,14 +165,21 @@ void OccupancyMapper::updateRay(double start_x, double start_y,
     std::lock_guard<std::mutex> lock(map_mutex_);
     
     // 경로상의 모든 점을 free로 설정 (끝점 제외)
-    for (size_t i = 0; i < ray_points.size() - 1; ++i) {
-        updateLogOdds(ray_points[i].first, ray_points[i].second, log_odds_free_);
+    size_t total_steps = ray_points.size();
+    if (total_steps > 1) {
+        for (size_t i = 0; i < total_steps - 1; ++i) {
+            double t = static_cast<double>(i) / static_cast<double>(total_steps - 1);
+            double weight = max_weight_ - (max_weight_ - min_weight_) * t;
+            updateLogOdds(ray_points[i].first, ray_points[i].second,
+                          log_odds_free_ * weight);
+        }
     }
-    
+
     // 끝점을 occupied로 설정 (hit인 경우)
     if (is_hit && !ray_points.empty()) {
         auto end_point = ray_points.back();
-        updateLogOdds(end_point.first, end_point.second, log_odds_occ_);
+        double weight = min_weight_;
+        updateLogOdds(end_point.first, end_point.second, log_odds_occ_ * weight);
     }
 }
 
