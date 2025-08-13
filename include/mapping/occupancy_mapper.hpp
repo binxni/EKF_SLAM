@@ -43,7 +43,8 @@ public:
     bool isInitialized() const { return initialized_; }
     
     // 설정
-    void setLogOddsParameters(double occ_prob = 0.7, double free_prob = 0.3);
+    void setLogOddsParameters(double occ_prob = 0.7, double free_prob = 0.3,
+                              double min_weight = 0.1, double max_weight = 1.0);
     void setMaxRange(double max_range) { max_range_ = max_range; }
 
 private:
@@ -58,6 +59,7 @@ private:
     // Log-odds 파라미터
     double log_odds_occ_, log_odds_free_;
     double log_odds_max_, log_odds_min_;
+    double min_weight_, max_weight_;
     
     // 맵 데이터
     std::vector<std::vector<double>> log_odds_map_;
