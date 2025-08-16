@@ -26,6 +26,8 @@
   <depend>tf2_ros</depend>
   <depend>tf2_geometry_msgs</depend>
   <depend>std_srvs</depend>
+  <depend>message_filters</depend>
+  <depend>trajectory_msgs</depend>
   
   <!-- Math and computation -->
   <depend>eigen3_cmake_module</depend>

@@ -25,6 +25,8 @@ find_package(tf2_geometry_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(eigen3_cmake_module REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(message_filters REQUIRED)
+find_package(trajectory_msgs REQUIRED)
 
 
 # Create library
@@ -70,6 +72,32 @@ ament_target_dependencies(slam_node
 )
 target_link_libraries(slam_node ${PROJECT_NAME}_lib)
 
+add_executable(global_to_polar_node
+  src/tools/global_to_polar_node.cpp
+)
+ament_target_dependencies(global_to_polar_node
+  rclcpp
+  sensor_msgs
+  nav_msgs
+  trajectory_msgs
+  tf2
+  tf2_ros
+)
+
+add_executable(data_logger_node
+  src/tools/data_logger_node.cpp
+)
+ament_target_dependencies(data_logger_node
+  rclcpp
+  sensor_msgs
+  nav_msgs
+  trajectory_msgs
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+  message_filters
+)
+
 target_include_directories(${PROJECT_NAME}_lib PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
@@ -78,6 +106,8 @@ target_include_directories(${PROJECT_NAME}_lib PUBLIC
 # Install executables
 install(TARGETS
   slam_node
+  global_to_polar_node
+  data_logger_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
