@@ -104,6 +104,12 @@ install(DIRECTORY config/
   DESTINATION share/${PROJECT_NAME}/config/
 )
 
+# Install Python scripts
+install(PROGRAMS
+  scripts/compute_ate.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 # Testing
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

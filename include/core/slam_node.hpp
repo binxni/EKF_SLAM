@@ -65,6 +65,8 @@ private:
 
   // ROS2 Publisher for map
   rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr map_pub_;
+  // Estimated odometry publisher
+  rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr slam_odom_pub_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr save_map_srv_;
 
   // Trajectory visualizer
