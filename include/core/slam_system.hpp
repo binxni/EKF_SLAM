@@ -2,7 +2,6 @@
 #define EKF_SLAM_SYSTEM_HPP_
 
 #include <Eigen/Dense>
-#include <Eigen/Sparse>
 #include <unordered_map>
 #include <vector>
 
@@ -39,10 +38,6 @@ private:
   // 공분산 행렬
   Eigen::MatrixXd sigma_;
 
-  // Sparse Extended Information Filter representation
-  Eigen::SparseMatrix<double> info_matrix_;
-  Eigen::VectorXd info_vector_;
-
   double noise_x_, noise_y_, noise_theta_; // control noise
   double meas_range_noise_, meas_bearing_noise_;
 
@@ -61,8 +56,6 @@ private:
                                     double bearing_noise_var);
 
   Eigen::Matrix2d getMeasurementNoiseMatrix() const;
-
-  void sparsifyInformationMatrix(double threshold);
 };
 
 } // namespace ekf_slam
