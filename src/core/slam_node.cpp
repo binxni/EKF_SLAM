@@ -3,6 +3,7 @@
 #include "sensor_msgs/msg/laser_scan.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 #include "tf2/utils.h"
+#include "tf2/LinearMath/Quaternion.h"
 
 #include <cmath>
 #include <memory>
@@ -93,6 +94,9 @@ void SlamNode::initialize() {
 
   // Map publisher
   map_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>("map", 10);
+  // Estimated odometry publisher
+  slam_odom_pub_ =
+      this->create_publisher<nav_msgs::msg::Odometry>("slam_odom", 10);
 
   // Trajectory visualizer
   trajectory_visualizer_ =
@@ -152,6 +156,19 @@ void SlamNode::scanCallback(const sensor_msgs::msg::LaserScan::SharedPtr msg) {
   if (trajectory_visualizer_) {
     trajectory_visualizer_->addPose(pose(0), pose(1), this->now());
   }
+
+  // Publish estimated pose as odometry for evaluation
+  nav_msgs::msg::Odometry odom_msg;
+  odom_msg.header.stamp = msg->header.stamp;
+  odom_msg.header.frame_id = "map";
+  odom_msg.child_frame_id = "base_link";
+  odom_msg.pose.pose.position.x = pose(0);
+  odom_msg.pose.pose.position.y = pose(1);
+  odom_msg.pose.pose.position.z = 0.0;
+  tf2::Quaternion q;
+  q.setRPY(0.0, 0.0, pose(2));
+  odom_msg.pose.pose.orientation = tf2::toMsg(q);
+  slam_odom_pub_->publish(odom_msg);
 }
 
 void SlamNode::publishMap() {
