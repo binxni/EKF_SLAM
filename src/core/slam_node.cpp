@@ -7,6 +7,8 @@
 
 #include <cmath>
 #include <memory>
+#include <sys/resource.h>
+#include <sys/time.h>
 
 namespace ekf_slam {
 
@@ -148,6 +150,24 @@ void SlamNode::scanCallback(const sensor_msgs::msg::LaserScan::SharedPtr msg) {
   auto pose = ekf_->getCurrentPose();
   RCLCPP_INFO(this->get_logger(), "Pose: x=%.2f, y=%.2f, θ=%.2f", pose(0),
               pose(1), pose(2));
+
+  // CPU usage reporting
+  static double last_cpu_time = 0.0;
+  static rclcpp::Time last_wall_time = this->now();
+  struct rusage usage;
+  if (getrusage(RUSAGE_SELF, &usage) == 0) {
+    double total_cpu = usage.ru_utime.tv_sec + usage.ru_utime.tv_usec / 1e6 +
+                       usage.ru_stime.tv_sec + usage.ru_stime.tv_usec / 1e6;
+    rclcpp::Time current_wall_time = this->now();
+    double dt_wall = (current_wall_time - last_wall_time).seconds();
+    double dt_cpu = total_cpu - last_cpu_time;
+    if (dt_wall > 0.0) {
+      double cpu_usage = (dt_cpu / dt_wall) * 100.0;
+      RCLCPP_INFO(this->get_logger(), "CPU usage: %.2f%%", cpu_usage);
+    }
+    last_wall_time = current_wall_time;
+    last_cpu_time = total_cpu;
+  }
 
   // occupancy mapping을 위한 데이터 전송
   occupancy_mapper_->addScanData(pose, *msg);
