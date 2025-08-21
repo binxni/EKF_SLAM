@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
 """Compute Absolute Trajectory Error between ground truth and SLAM output."""
 
+import argparse
 import math
 from typing import List, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.interpolate import make_interp_spline
+
+try:
+    from scipy.interpolate import make_interp_spline
+except Exception:  # pragma: no cover - SciPy might be missing
+    make_interp_spline = None
+
 import rclpy
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
@@ -15,11 +21,12 @@ from rclpy.node import Node
 class ATEEvaluator(Node):
     """Node that records two trajectories and computes ATE RMSE."""
 
-    def __init__(self) -> None:
+    def __init__(self, no_display: bool = False) -> None:
         super().__init__('ate_evaluator')
         self.gt_traj: List[Tuple[float, Tuple[float, float]]] = []
         self.slam_traj: List[Tuple[float, Tuple[float, float]]] = []
         self.sync_threshold = self.declare_parameter('sync_threshold', 0.05).value
+        self.no_display = no_display
 
         self.create_subscription(Odometry, '/odom', self._gt_callback, 10)
         self.create_subscription(Odometry, '/slam_odom', self._slam_callback, 10)
@@ -85,12 +92,6 @@ class ATEEvaluator(Node):
             f'(GT=({gt_x[max_idx]:.2f}, {gt_y[max_idx]:.2f}), '
             f'SLAM=({slam_x[max_idx]:.2f}, {slam_y[max_idx]:.2f}))'
         )
-        print(f'ATE RMSE: {rmse:.4f} m')
-        print(
-            f'Max error {max_error:.4f} m at t={max_time:.2f}s '
-            f'(GT=({gt_x[max_idx]:.2f}, {gt_y[max_idx]:.2f}), '
-            f'SLAM=({slam_x[max_idx]:.2f}, {slam_y[max_idx]:.2f}))'
-        )
         with open('ate_metrics.txt', 'w', encoding='utf-8') as f:
             f.write(f'RMSE: {rmse:.4f} m\n')
             f.write(
@@ -104,13 +105,31 @@ class ATEEvaluator(Node):
         slam_x_arr = np.array(slam_x)
         slam_y_arr = np.array(slam_y)
 
-        if len(times) >= 4:
-            t_new = np.linspace(times[0], times[-1], len(times) * 10)
-            gt_x_smooth = make_interp_spline(times, gt_x_arr)(t_new)
-            gt_y_smooth = make_interp_spline(times, gt_y_arr)(t_new)
-            slam_x_smooth = make_interp_spline(times, slam_x_arr)(t_new)
-            slam_y_smooth = make_interp_spline(times, slam_y_arr)(t_new)
+        # De-duplicate and sort timestamps to avoid issues with interpolation
+        times, uniq_idx = np.unique(times, return_index=True)
+        gt_x_arr = gt_x_arr[uniq_idx]
+        gt_y_arr = gt_y_arr[uniq_idx]
+        slam_x_arr = slam_x_arr[uniq_idx]
+        slam_y_arr = slam_y_arr[uniq_idx]
+
+        if len(times) < 2:
+            self.get_logger().warn('Not enough unique timestamps for smoothing.')
+            gt_x_smooth, gt_y_smooth = gt_x_arr, gt_y_arr
+            slam_x_smooth, slam_y_smooth = slam_x_arr, slam_y_arr
+        elif len(times) >= 4 and make_interp_spline is not None:
+            try:
+                t_new = np.linspace(times[0], times[-1], len(times) * 10)
+                gt_x_smooth = make_interp_spline(times, gt_x_arr)(t_new)
+                gt_y_smooth = make_interp_spline(times, gt_y_arr)(t_new)
+                slam_x_smooth = make_interp_spline(times, slam_x_arr)(t_new)
+                slam_y_smooth = make_interp_spline(times, slam_y_arr)(t_new)
+            except Exception as exc:  # pragma: no cover - interpolation may fail
+                self.get_logger().warn(f'Spline interpolation failed: {exc}')
+                gt_x_smooth, gt_y_smooth = gt_x_arr, gt_y_arr
+                slam_x_smooth, slam_y_smooth = slam_x_arr, slam_y_arr
         else:
+            if make_interp_spline is None and len(times) >= 4:
+                self.get_logger().warn('SciPy not available, skipping smoothing.')
             gt_x_smooth, gt_y_smooth = gt_x_arr, gt_y_arr
             slam_x_smooth, slam_y_smooth = slam_x_arr, slam_y_arr
 
@@ -123,12 +142,19 @@ class ATEEvaluator(Node):
         plt.axis('equal')
         plt.grid(True)
         plt.savefig('trajectory_comparison.png')
-        plt.show()
+        if self.no_display:
+            plt.close()
+        else:
+            plt.show()
 
 
-def main() -> None:
-    rclpy.init()
-    node = ATEEvaluator()
+def main(args=None) -> None:
+    parser = argparse.ArgumentParser(description='ATE evaluator')
+    parser.add_argument('--no-display', action='store_true', help='Skip plotting display')
+    parsed_args, unknown = parser.parse_known_args(args)
+
+    rclpy.init(args=unknown)
+    node = ATEEvaluator(no_display=parsed_args.no_display)
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
