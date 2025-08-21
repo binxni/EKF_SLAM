@@ -6,6 +6,7 @@ from typing import List, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.interpolate import make_interp_spline
 import rclpy
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
@@ -43,7 +44,8 @@ class ATEEvaluator(Node):
         self.gt_traj.sort(key=lambda x: x[0])
         self.slam_traj.sort(key=lambda x: x[0])
         i = j = 0
-        errors = []
+        errors: List[float] = []
+        pair_times: List[float] = []
         gt_x: List[float] = []
         gt_y: List[float] = []
         slam_x: List[float] = []
@@ -57,6 +59,7 @@ class ATEEvaluator(Node):
                 diff_x = p_gt[0] - p_slam[0]
                 diff_y = p_gt[1] - p_slam[1]
                 errors.append(math.hypot(diff_x, diff_y))
+                pair_times.append((t_gt + t_slam) / 2.0)
                 gt_x.append(p_gt[0])
                 gt_y.append(p_gt[1])
                 slam_x.append(p_slam[0])
@@ -73,11 +76,46 @@ class ATEEvaluator(Node):
             return
 
         rmse = math.sqrt(np.mean(np.square(errors)))
+        max_error = float(np.max(errors))
+        max_idx = int(np.argmax(errors))
+        max_time = pair_times[max_idx]
         self.get_logger().info(f'ATE RMSE: {rmse:.4f} m')
+        self.get_logger().info(
+            f'Max error {max_error:.4f} m at t={max_time:.2f}s '
+            f'(GT=({gt_x[max_idx]:.2f}, {gt_y[max_idx]:.2f}), '
+            f'SLAM=({slam_x[max_idx]:.2f}, {slam_y[max_idx]:.2f}))'
+        )
+        print(f'ATE RMSE: {rmse:.4f} m')
+        print(
+            f'Max error {max_error:.4f} m at t={max_time:.2f}s '
+            f'(GT=({gt_x[max_idx]:.2f}, {gt_y[max_idx]:.2f}), '
+            f'SLAM=({slam_x[max_idx]:.2f}, {slam_y[max_idx]:.2f}))'
+        )
+        with open('ate_metrics.txt', 'w', encoding='utf-8') as f:
+            f.write(f'RMSE: {rmse:.4f} m\n')
+            f.write(
+                f'Max error: {max_error:.4f} m at t={max_time:.2f}s\n'
+            )
 
         plt.figure()
-        plt.plot(gt_x, gt_y, label='Ground Truth')
-        plt.plot(slam_x, slam_y, label='SLAM')
+        times = np.array(pair_times)
+        gt_x_arr = np.array(gt_x)
+        gt_y_arr = np.array(gt_y)
+        slam_x_arr = np.array(slam_x)
+        slam_y_arr = np.array(slam_y)
+
+        if len(times) >= 4:
+            t_new = np.linspace(times[0], times[-1], len(times) * 10)
+            gt_x_smooth = make_interp_spline(times, gt_x_arr)(t_new)
+            gt_y_smooth = make_interp_spline(times, gt_y_arr)(t_new)
+            slam_x_smooth = make_interp_spline(times, slam_x_arr)(t_new)
+            slam_y_smooth = make_interp_spline(times, slam_y_arr)(t_new)
+        else:
+            gt_x_smooth, gt_y_smooth = gt_x_arr, gt_y_arr
+            slam_x_smooth, slam_y_smooth = slam_x_arr, slam_y_arr
+
+        plt.plot(gt_x_smooth, gt_y_smooth, label='Ground Truth')
+        plt.plot(slam_x_smooth, slam_y_smooth, label='SLAM')
         plt.xlabel('X [m]')
         plt.ylabel('Y [m]')
         plt.title(f'Trajectory Comparison (RMSE={rmse:.4f} m)')
