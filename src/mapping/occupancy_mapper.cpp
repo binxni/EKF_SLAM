@@ -87,7 +87,7 @@ void OccupancyMapper::addScanData(const Eigen::Vector3d &robot_pose,
   OccupancyScanData data;
   data.robot_pose = robot_pose;
   data.scan = scan;
-  data.timestamp = rclcpp::Clock().now();
+  data.timestamp = node_->get_clock()->now();
 
   data_queue_.push(data);
   queue_cv_.notify_one();
@@ -263,7 +263,7 @@ nav_msgs::msg::OccupancyGrid OccupancyMapper::getOccupancyGrid() const {
   nav_msgs::msg::OccupancyGrid grid;
 
   // 헤더 설정
-  grid.header.stamp = rclcpp::Clock().now();
+  grid.header.stamp = node_->get_clock()->now();
   grid.header.frame_id = "map";
 
   // 맵 정보 설정
