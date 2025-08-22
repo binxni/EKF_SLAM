@@ -32,6 +32,7 @@ add_library(${PROJECT_NAME}_lib
   src/core/slam_system.cpp
   src/preprocessing/laser_processor.cpp
   src/association/data_association.cpp
+  src/association/icp.cpp
   src/mapping/occupancy_mapper.cpp
 )
 
